@@ -37,7 +37,7 @@ local updatePositionInterval = 2
 local uiScale = 1
 local viewGeometryX,viewGeometryY = 0,0
 
-local imgSizeX,imgSizeY = 256,256
+local imgSizeX,imgSizeY = 140,140
 local usedImgSizeX,usedImgSizeY = imgSizeX,imgSizeY -- * uiScale
 local posX,posY = 0,0
 local baseOffsetX,baseOffsetY = 0,0
