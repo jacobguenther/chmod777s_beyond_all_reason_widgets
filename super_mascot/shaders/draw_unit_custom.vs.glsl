@@ -3,7 +3,10 @@
 #extension GL_ARB_shader_storage_buffer_object : require
 #extension GL_ARB_shading_language_420pack: require
 
-#line 10000
+// file: draw_unit_custom.vs.glsl
+// author: chmod777
+// license: GNU AGPL v3
+
 //__DEFINES__
 
 layout (location = 0) in vec3 pos;

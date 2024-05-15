@@ -2,6 +2,10 @@
 precision highp int;
 precision highp float;
 
+// file: classic.vs.glsl
+// author: chmod777
+// license: GNU AGPL v3
+
 // vertex attributes
 layout (location = 0) in vec2 coords;
 layout (location = 1) in vec2 uv;

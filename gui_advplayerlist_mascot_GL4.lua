@@ -1,3 +1,7 @@
+-- file: utilites_GL4.lua
+-- author: chmod777
+-- license: GNU GPL, v2 or later
+
 function widget:GetInfo()
 	return {
 		name		= 'AdvPlayersList Mascot GL4',

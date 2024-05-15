@@ -3,6 +3,10 @@
 #extension GL_ARB_uniform_buffer_object : require
 #extension GL_ARB_shading_language_420pack: require
 
+// file: classic.fs.glsl
+// author: chmod777
+// license: GNU AGPL v3
+
 layout (binding = 0) uniform sampler2D body;
 layout (binding = 1) uniform sampler2D head;
 layout (binding = 2) uniform sampler2D hat;
