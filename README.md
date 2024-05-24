@@ -15,6 +15,8 @@ In game hit F11, scroll to the bottom of the widgets list and enable your new wi
 
 ## Super Mascot Collection
 
+[Download Super Mascot](https://github.com/jacobguenther/chmod777s_beyond_all_reason_widgets/releases/download/refactored/super_mascot_collection.zip)
+
 Tired of the same three cats? We've got commanders, blobs, and a dogo or add your own images to have as mascots.
 Use with
 
