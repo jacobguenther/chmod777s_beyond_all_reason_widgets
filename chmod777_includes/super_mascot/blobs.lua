@@ -233,9 +233,9 @@ function BlobsMascot:new()
 	}
 
 	function this:Draw()
-		glUseShader(computeShader)
+		glUseShader(this.computeShader)
 			local unit,level,layer = 0,0,0
-			glBindImageTexture(unit, renderTexture, level, layer, GL_READ_WRITE, GL_RGBAF32)
+			glBindImageTexture(unit, this.renderTexture, level, layer, GL_READ_WRITE, GL_RGBAF32)
 			glTexture(unit, this.renderTexture)
 			if this.shouldUpdateBuffers then
 				this.shapeSSBO.ssbo:BindBufferRange(this.shapeSSBO.binding, 0, this.shapeSSBO.elementCount, GL_SHADER_STORAGE_BUFFER)
@@ -243,13 +243,13 @@ function BlobsMascot:new()
 				this.shouldUpdateBuffers = false
 			end
 			glUniform(this.timeUniformLoc, this.time)
-			glDispatchCompute(WIDTH, HEIGHT, 1, GL_SHADER_IMAGE_ACCESS_BARRIER_BIT) -- GL_ALL_BARRIER_BITS
-		simpleShader:Activate()
+			glDispatchCompute(WIDTH, HEIGHT, 1, GL_ALL_BARRIER_BITS) -- GL_ALL_BARRIER_BITS GL_SHADER_IMAGE_ACCESS_BARRIER_BIT
+		this.simpleShader:Activate()
 			glBlending(GL_SRC_ALPHA, GL_ONE)
 			glBlending(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
-			quad:draw()
+			this.quad:draw()
 			glBlending(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
-		simpleShader:Deactivate()
+		this.simpleShader:Deactivate()
 	end
 
 	function this:on_Update(dt)
