@@ -156,6 +156,8 @@ function widget:Shutdown()
 	if quad ~= nil then quad:Delete() end
 
 	if commander ~= nil then commander:Delete() end
+	if blobs ~= nil then blobs:Delete() end
+	if simple ~= nil then simple:Delete() end
 end
 
 function widget:TextCommand(command)
