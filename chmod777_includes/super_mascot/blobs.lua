@@ -15,14 +15,19 @@ You should have received a copy of the GNU Affero General Public License along
 with this program. If not, see <https://www.gnu.org/licenses/>. 
 ]]
 
-local GL_RGBAF32 = 34836
+-- TODO
+--  * Move TableConcat to utilities_lua.lua
 
-local luaWidgetDir = 'LuaUI/Widgets/'
-local Quad, FBO = VFS.Include(luaWidgetDir..'chmod777_includes/utilities_GL4.lua')
+--------------------------------------------------------------------------------
+--  includes
+--------------------------------------------------------------------------------
 
-local luaIncludeDir = luaWidgetDir..'Include/'
-VFS.Include(luaIncludeDir..'instancevbotable.lua')
-local LuaShader = VFS.Include(luaIncludeDir..'LuaShader.lua')
+local Quad, FBO = VFS.Include('LuaUI/Widgets/chmod777_includes/utilities_GL4.lua')
+local LuaShader = VFS.Include('LuaUI/Widgets/Include/LuaShader.lua')
+
+--------------------------------------------------------------------------------
+--  config
+--------------------------------------------------------------------------------
 
 local SPHERE_COUNT = 8
 local WIDTH = 128
@@ -33,25 +38,6 @@ local MIN_DISTANCE = 0.001
 local SMOOTHING_FACTOR = 0.5
 local TIMESCALE = 0.5
 local MOVESCALE = 2.0
-
-
-local glUseShader = gl.UseShader
-local glBindImageTexture = gl.BindImageTexture
-local glTexture = gl.Texture
-local glUniform = gl.Uniform
-local glDispatchCompute = gl.DispatchCompute
-local glBlending = gl.Blending
-
-local GL_ARRAY_BUFFER = GL.ARRAY_BUFFER
-local GL_NEAREST = GL.NEAREST
-local GL_CLAMP_TO_EDGE = GL.CLAMP_TO_EDGE
-local GL_READ_WRITE = GL.READ_WRITE
-local GL_SHADER_STORAGE_BUFFER = GL.SHADER_STORAGE_BUFFER
-local GL_SHADER_IMAGE_ACCESS_BARRIER_BIT = GL.SHADER_IMAGE_ACCESS_BARRIER_BIT
-local GL_ALL_BARRIER_BITS = GL.ALL_BARRIER_BITS
-local GL_SRC_ALPHA = GL.SRC_ALPHA
-local GL_ONE = GL.ONE
-local GL_ONE_MINUS_SRC_ALPHA = GL.ONE_MINUS_SRC_ALPHA
 
 -- Resources
 -- https://iquilezles.org/articles/palettes/
@@ -100,20 +86,38 @@ local PALLETS = {
 	}
 }
 
+--------------------------------------------------------------------------------
+--  speedups?
+--------------------------------------------------------------------------------
+
+local glUseShader = gl.UseShader
+local glBindImageTexture = gl.BindImageTexture
+local glTexture = gl.Texture
+local glUniform = gl.Uniform
+local glDispatchCompute = gl.DispatchCompute
+local glBlending = gl.Blending
+
+local GL_ARRAY_BUFFER = GL.ARRAY_BUFFER
+local GL_NEAREST = GL.NEAREST
+local GL_CLAMP_TO_EDGE = GL.CLAMP_TO_EDGE
+local GL_READ_WRITE = GL.READ_WRITE
+local GL_SHADER_STORAGE_BUFFER = GL.SHADER_STORAGE_BUFFER
+local GL_SHADER_IMAGE_ACCESS_BARRIER_BIT = GL.SHADER_IMAGE_ACCESS_BARRIER_BIT
+local GL_ALL_BARRIER_BITS = GL.ALL_BARRIER_BITS
+local GL_SRC_ALPHA = GL.SRC_ALPHA
+local GL_ONE = GL.ONE
+local GL_ONE_MINUS_SRC_ALPHA = GL.ONE_MINUS_SRC_ALPHA
+
+-- DO NOT TOUCH --
+local GL_RGBAF32 = 34836
+-- DO NOT TOUCH --
+
 local function TableConcat(t1,t2)
 	for i=1,#t2 do
 		t1[#t1+1] = t2[i]
 	end
 	return t1
 end
-
-local computeShader = nil
-local timeUniformLoc = nil
-local shouldUpdateBuffers = true
-local renderTexture = nil
-local time = 0;
-local simpleShader = nil
-local quad = nil
 
 local BlobsMascot = {}
 function BlobsMascot:new()
@@ -254,23 +258,13 @@ function BlobsMascot:new()
 	end
 
 	function this:Delete()
-		if computeShader ~= nil then
-			-- computeShader:Delete()
-		end
-		if simpleShader ~= nil then
-			simpleShader:Delete()
-		end
+		if computeShader ~= nil then --[[ computeShader:Delete() ]] end
+		if simpleShader ~= nil then simpleShader:Delete() end
 
-		if shapeSSBO.ssbo ~= nil then
-			shapeSSBO.ssbo:Delete()
-		end
-		if cameraSSBO.ssbo ~= nil then
-			cameraSSBO.ssbo:Delete()
-		end
+		if shapeSSBO.ssbo ~= nil then shapeSSBO.ssbo:Delete() end
+		if cameraSSBO.ssbo ~= nil then cameraSSBO.ssbo:Delete() end
 	
-		if quad ~= nil then
-			quad:Delete()
-		end
+		if quad ~= nil then quad:Delete() end
 	end
 
 	return this
