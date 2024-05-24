@@ -163,9 +163,17 @@ end
 function widget:TextCommand(command)
 	if command:sub(1, 6) == 'mascot' then
 		local name = command:sub(8)
-		requestOption = name
-		if mascots[name] then
-			currentOption = name
+		if name == 'list' then
+			local formatted = "Available mascots: "
+			for name,_ in pairs(mascots) do
+				formatted = formatted..name.." "
+			end
+			spEcho(formatted)
+		else
+			requestOption = name
+			if mascots[name] then
+				currentOption = name
+			end
 		end
 	end
 end
