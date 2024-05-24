@@ -98,6 +98,9 @@ function CommanderMascot:new()
 	end
 
 	function this:Draw()
+		if this.currentCommanderDefID == nil then
+			return
+		end
 		glCulling(GL.BACK)
 		glDepthTest(true)
 		glDepthMask(true)
