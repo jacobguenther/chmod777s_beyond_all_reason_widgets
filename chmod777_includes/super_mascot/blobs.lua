@@ -120,7 +120,7 @@ end
 
 local BlobsMascot = {}
 function BlobsMascot:new()
-	local computeSource = VFS.LoadFile(luaWidgetDir..'chmod777_includes/shaders/ray_march.glsl', VFS.RAW)
+	local computeSource = VFS.LoadFile('LuaUI/Widgets/chmod777_includes/shaders/ray_march.glsl', VFS.RAW)
 	local computeShader = gl.CreateShader({
 		defines = {
 			'#version 430\n',
@@ -142,8 +142,8 @@ function BlobsMascot:new()
 	})
 	local timeUniformLoc = gl.GetUniformLocation(computeShader, 'time');
 
-	local vsSrc = VFS.LoadFile(luaWidgetDir..'chmod777_includes/shaders/quad.vs.glsl', VFS.RAW)
-	local fsSrc = VFS.LoadFile(luaWidgetDir..'chmod777_includes/shaders/quad.fs.glsl', VFS.RAW)
+	local vsSrc = VFS.LoadFile('LuaUI/Widgets/chmod777_includes/shaders/quad.vs.glsl', VFS.RAW)
+	local fsSrc = VFS.LoadFile('LuaUI/Widgets/chmod777_includes/shaders/quad.fs.glsl', VFS.RAW)
 	local simpleShader = LuaShader({
 		vertex = vsSrc,
 		fragment = fsSrc,
