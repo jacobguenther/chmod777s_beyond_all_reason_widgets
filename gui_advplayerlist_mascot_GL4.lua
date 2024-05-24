@@ -73,7 +73,7 @@ table.insert(OPTIONS, {
 
 table.insert(OPTIONS, {
 	name				= 'Doge',
-	body				= customImageDirectory..'dogedog_full.png',
+	body				= customImageDirectory..'dogedog.png',
 	head				= nil,
 	headblink			= nil,
 	santahat			= imageDirectory..'santahat.png',

@@ -32,7 +32,7 @@
 }
 
 #wind {
-	background-image: src("LuaUI/Widgets/chmod777_includes/images/dogedog_full.png") src("unitpics/armrl.dds");
+	background-image: src("LuaUI/Widgets/chmod777_includes/images/dogedog.png") src("unitpics/armrl.dds");
 }
 #nettle {
 	background-image: src("unitpics/armrl.dds");
