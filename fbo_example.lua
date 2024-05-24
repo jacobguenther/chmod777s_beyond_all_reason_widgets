@@ -183,23 +183,13 @@ function widget:Initialize()
 end
 
 function widget:Shutdown()
-	if fbo ~= nil then
-		fbo:Delete()
-	end
+	if fbo ~= nil then fbo:Delete() end
 
-	if screenQuadShader ~= nil then
-		screenQuadShader:Delete()
-	end
-	if combineShader ~= nil then
-		combineShader:Delete()
-	end
+	if screenQuadShader ~= nil then screenQuadShader:Delete() end
+	if combineShader ~= nil then combineShader:Delete() end
 
-	if screenQuad ~= nil then
-		screenQuad:Delete()
-	end
-	if combiningQuad ~= nil then
-		combiningQuad:Delete()
-	end
+	if screenQuad ~= nil then screenQuad:Delete() end
+	if combiningQuad ~= nil then combiningQuad:Delete() end
 end
 
 function DrawCombined()
@@ -222,10 +212,10 @@ function widget:DrawScreen()
 		DrawCombined()
 
 		-- render to a texture(fbo.tex)
-		fbo.bind()
+		fbo:bind()
 			glClear(GL_COLOR_BUFFER_BIT, 0,0,0,0)
 			DrawCombined()
-		fbo.unbind()
+		fbo:unbind()
 	glViewport(0, 0, viewGeometryX, viewGeometryY)
 
 	-- display the texture on a quad in the center of the screen
