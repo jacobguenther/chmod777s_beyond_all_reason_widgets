@@ -110,7 +110,6 @@ local GL_ONE_MINUS_SRC_ALPHA = GL.ONE_MINUS_SRC_ALPHA
 
 -- DO NOT TOUCH --
 local GL_RGBAF32 = 34836
--- DO NOT TOUCH --
 
 local function TableConcat(t1,t2)
 	for i=1,#t2 do
