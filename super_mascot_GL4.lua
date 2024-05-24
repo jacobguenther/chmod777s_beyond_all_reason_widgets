@@ -18,7 +18,7 @@ with this program. If not, see <https://www.gnu.org/licenses/>.
 function widget:GetInfo()
 	return {
 		name    = 'Super Mascot GL4',
-		desc    = 'Manages mascots',
+		desc    = 'Manages mascots usage "/mascot commander", "/mascot blobs", "/mascot my_cool_image", "/mascot list".',
 		author  = 'chmod777',
 		date    = 'May 2024',
 		license = 'GNU AGPL v3',
@@ -30,7 +30,9 @@ end
 -- TODO
 -- look into why advplayerlist parent scale is different than ui_scale
 
-local fbo = nil
+--------------------------------------------------------------------------------
+--  includes
+--------------------------------------------------------------------------------
 
 local luaWidgetDir = 'LuaUI/Widgets/'
 local luaIncludeDir = luaWidgetDir..'Include/'
@@ -41,6 +43,10 @@ local Quad, FBO = VFS.Include(luaWidgetDir..'chmod777_includes/utilities_GL4.lua
 local quadVsSrc = VFS.LoadFile(luaWidgetDir..'chmod777_includes/shaders/quad_centering.vs.glsl', VFS.RAW)
 local quadFsSrc = VFS.LoadFile(luaWidgetDir..'chmod777_includes/shaders/quad_alpha.fs.glsl', VFS.RAW)
 
+--------------------------------------------------------------------------------
+--  variables
+--------------------------------------------------------------------------------
+
 local quadShader = nil
 local quadUniformLocs = {
 	screenPos = nil,
@@ -48,6 +54,7 @@ local quadUniformLocs = {
 	viewGeometry = nil
 }
 local quad = nil
+local fbo = nil
 
 local playerListTop,playerListLeft = 0,0
 local updatePositionTimer = 0
@@ -70,13 +77,13 @@ local currentOption = nil
 local requestOption = nil
 
 local mascots = {}
-local CommanderMascot
 local commander
-local SimpleMascot
 local simple
-local BlobsMascot
 local blobs
 
+--------------------------------------------------------------------------------
+--  speedups?
+--------------------------------------------------------------------------------
 
 local glClear = gl.Clear
 local glDepthTest = gl.DepthTest
@@ -93,14 +100,15 @@ local spGetConfigFloat = Spring.GetConfigFloat
 local spGetViewGeometry = Spring.GetViewGeometry
 local spEcho = Spring.Echo
 
----------------------------------------------------------------------------------------------------
---  fowrard declared function
----------------------------------------------------------------------------------------------------
-
-local RegisterMascot = nil
-local DeregisterMascot = nil
+--------------------------------------------------------------------------------
+--  fowrard declared functions
+--------------------------------------------------------------------------------
 
 local updatePosition = nil
+
+--------------------------------------------------------------------------------
+--  widget callins
+--------------------------------------------------------------------------------
 
 function widget:Initialize()
 	fbo = FBO:new(imgSizeX, imgSizeY, true)
@@ -126,8 +134,20 @@ function widget:Initialize()
 	viewGeometryX,viewGeometryY = spGetViewGeometry()
 	updatePosition(true)
 
-	CommanderMascot = VFS.Include(luaWidgetDir.."chmod777_includes/super_mascot/commander.lua")
+	local CommanderMascot = VFS.Include(luaWidgetDir.."chmod777_includes/super_mascot/commander.lua")
 	commander = CommanderMascot:new()
+	mascots["commander"] = commander
+
+	local BlobsMascot = VFS.Include(luaWidgetDir.."chmod777_includes/super_mascot/blobs.lua")
+	blobs = BlobsMascot:new()
+	mascots["blobs"] = blobs
+
+	local SimpleMascot = VFS.Include(luaWidgetDir.."chmod777_includes/super_mascot/simple.lua")
+	simple = SimpleMascot:new()
+	local otherMascots = simple:mascotNames()
+	for i,name in ipairs(otherMascots) do
+		mascots[name] = simple
+	end
 end
 
 function widget:Shutdown()
@@ -172,16 +192,24 @@ function widget:Update(dt)
 		updatePosition(false)
 	end
 
-	commander:on_Update(dt)
+	if currentOption and mascots[currentOption] and mascots[currentOption].on_Update then
+		mascots[currentOption]:on_Update(dt)
+	end
 end
 function widget:GameFrame(n)
-	commander:on_GameFrame(n)
+	if currentOption and mascots[currentOption] and mascots[currentOption].on_GameFrame then
+		mascots[currentOption]:on_GameFrame(n)
+	end
 end
 function widget:PlayerChanged()
-	commander:on_PlayerChanged()
+	if currentOption and mascots[currentOption] and mascots[currentOption].on_PlayerChanged then
+		mascots[currentOption]:on_PlayerChanged()
+	end
 end
 function widget:UnitDestroyed(unitID)
-	commander:on_UnitDestroyed(unitID)
+	if currentOption and mascots[currentOption] and mascots[currentOption].on_PlayerChanged then
+		mascots[currentOption]:on_UnitDestroyed(unitID)
+	end
 end
 
 
@@ -193,20 +221,19 @@ end
 
 function widget:DrawScreen()
 	local currentMascot = mascots[currentOption]
-	if true or currentMascot and currentMascot.func then
+	if type(currentMascot) == "table" then
 		glViewport(0, 0, imgSizeX, imgSizeY)
 		fbo:bind()
 			glDepthTest(true)
 			glDepthMask(true)
 			glClear(GL_DEPTH_BUFFER_BIT)
 			glClear(GL_COLOR_BUFFER_BIT, 0,0,0,0)
-			commander:Draw()
+			currentMascot:Draw(currentOption)
 			glDepthTest(false)
 			glDepthMask(false)
 		fbo:unbind()
 		glViewport(0, 0, viewGeometryX, viewGeometryY)
 	else
-		currentOption = nil
 		fbo:bind()
 			glDepthTest(true)
 			glDepthMask(true)
@@ -236,12 +263,16 @@ function widget:DrawScreen()
 	quadShader:Deactivate()
 end
 
-function updatePosition(force)
-	if force == nil then force = false end
+--------------------------------------------------------------------------------
+--  functions
+--------------------------------------------------------------------------------
+
+function updatePosition(forceUpdate)
+	if forceUpdate == nil then forceUpdate = false end
 	
 	local newUiScale = spGetConfigFloat('ui_scale', 1) or 1
 	local uiScaleChanged = newUiScale ~= uiScale
-	if (force or uiScaleChanged) then
+	if (forceUpdate or uiScaleChanged) then
 		uiScale = newUiScale
 		usedImgSizeX = imgSizeX * uiScale
 		usedImgSizeY = imgSizeY * uiScale
@@ -271,7 +302,7 @@ function updatePosition(force)
 		playerListTop,playerListLeft = 0,viewGeometryX-usedImgSizeX
 	end
 
-	if (force or
+	if (forceUpdate or
 		uiScaleChanged or
 		prevTop == nil or
 		prevTop ~= playerListTop or
