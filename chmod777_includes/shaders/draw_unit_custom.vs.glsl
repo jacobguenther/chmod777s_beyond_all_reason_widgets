@@ -1,32 +1,41 @@
-#version 330
+#version 420
 #extension GL_ARB_uniform_buffer_object : require
 #extension GL_ARB_shader_storage_buffer_object : require
 #extension GL_ARB_shading_language_420pack: require
 
-// file: draw_unit_custom.vs.glsl
-// author: chmod777
-// license: GNU AGPL v3
+// File: draw_unit_custom.vs.glsl
+// Author: chmod777
+// Based on a shader by Beherith and Ivand
 
-//__DEFINES__
+/*
+Copyright (C) 2024 chmod777
+
+This program is free software: you can redistribute it and/or modify it under
+the terms of the GNU Affero General Public License version 3 as published by the
+Free Software Foundation.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+PARTICULAR PURPOSE. See the GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License along
+with this program. If not, see <https://www.gnu.org/licenses/>. 
+*/
 
 layout (location = 0) in vec3 pos;
 layout (location = 1) in vec3 normal;
 layout (location = 2) in vec3 T;
 layout (location = 3) in vec3 B;
 layout (location = 4) in vec4 uv;
-#if (SKINSUPPORT == 0)
-	layout (location = 5) in uint pieceIndex;
-#else
-	layout (location = 5) in uvec2 bonesInfo; //boneIDs, boneWeights
-	#define pieceIndex (bonesInfo.x & 0x000000FFu)
-#endif
+layout (location = 5) in uvec2 bonesInfo; //boneIDs, boneWeights
+
+#define pieceIndex (bonesInfo.x & 0x000000FFu)
 
 layout (location = 6) in vec4 worldposrot;  // xyz = pos, w = rotation
 layout (location = 7) in vec4 camEye;       // xyz, w = unused
 layout (location = 8) in vec4 camTarget;    // xyz, w = unused
 layout (location = 9) in vec4 perspParams;  // x = near, y = far, z = fovy, w = aspect(unused)
-layout (location = 10) in vec4 parameters;  // x = alpha, y = isstatic, zw = unused
-layout (location = 11) in uvec4 instData;
+layout (location = 10) in uvec4 instData;
 
 mat4 camLookAt(vec3 eye, vec3 right, vec3 up, vec3 dir) {
 	mat4 lookAt = mat4(1.0);
@@ -67,28 +76,12 @@ mat4 perspective(float near, float far, float fovy) {
 		vec4(0, 0, b, 0)
 	);
 }
+
 //__ENGINEUNIFORMBUFFERDEFS__
-layout(std140, binding = 2) uniform FixedStateMatrices {
-	mat4 modelViewMat;
-	mat4 projectionMat;
-	mat4 textureMat;
-	mat4 modelViewProjectionMat;
-};
-#line 15000
+
 layout(std140, binding=0) buffer MatrixBuffer {
 	mat4 mat[];
 };
-
-//enum DrawFlags : uint8_t {
-//    SO_NODRAW_FLAG = 0, // must be 0
-//    SO_OPAQUE_FLAG = 1,
-//    SO_ALPHAF_FLAG = 2,
-//    SO_REFLEC_FLAG = 4,
-//    SO_REFRAC_FLAG = 8,
-//    SO_SHADOW_FLAG = 16,
-//    SO_FARTEX_FLAG = 32,
-//    SO_DRICON_FLAG = 128, //unused so far
-//};
 
 out vec2 v_uv;
 out vec4 myTeamColor;
@@ -96,30 +89,22 @@ out vec4 myTeamColor;
 void main() {
 	uint baseIndex = instData.x;
 
-	float alpha = parameters.x;
-	float isStatic = parameters.y;
+	mat4 pieceMatrix = mat[baseIndex + pieceIndex + 1u];
+	
+	float rotation = worldposrot.w;
+	mat4 localRotationMatrix = mat4(rotation3dY(rotation));
 
-	// dynamic models have one extra matrix, as their first matrix is their world pos/offset
-	mat4 modelMatrix = mat[baseIndex];
-	uint isDynamic = 1u;
-	if (isStatic > 0.5) {
-		isDynamic = 0u;
-	}
-	mat4 pieceMatrix = mat[baseIndex + pieceIndex + isDynamic];
+	mat4 worldTranslation = mat4(1.0);
+	vec4 worldPos = vec4(worldposrot.xyz, 1.0);
+	worldTranslation[3] = worldPos;
 
-	vec4 localModelPos = pieceMatrix * vec4(pos, 1.0);
+	vec4 worldModelPos = worldTranslation
+		* localRotationMatrix
+		* pieceMatrix
+		* vec4(pos, 1.0);
 
-	// Make the rotation matrix around Y and rotate the model
-	mat3 rotY = rotation3dY(worldposrot.w);
-	localModelPos.xyz = rotY * localModelPos.xyz;
-
-	mat4 worldPosTranslation = mat4(1.0);
-	worldPosTranslation[3] = vec4(worldposrot.xyz, 1.0);
-
-	vec4 worldModelPos = worldPosTranslation*localModelPos;
-
-	uint teamIndex = (instData.z & 0x000000FFu);         // leftmost ubyte is teamIndex
-	myTeamColor = vec4(teamColor[teamIndex].rgb, alpha); // pass alpha through
+	uint teamIndex = (instData.z & 0x000000FFu); // leftmost ubyte is teamIndex
+	myTeamColor = teamColor[teamIndex];
 
 	v_uv = uv.xy;
 
