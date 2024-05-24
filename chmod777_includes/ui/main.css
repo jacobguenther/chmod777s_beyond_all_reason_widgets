@@ -1,0 +1,71 @@
+.container {
+	display: block;
+	width: 512px;
+	height: 600px;
+	margin: 8px;
+	padding: 0px;
+	background-color: salmon;
+}
+.row {
+	display: block;
+	width: 100%;
+	height: 128px;
+}
+.tile {
+	display: inline-block;
+	width: 128px;
+	height: 128px;
+	margin: 0px;
+	padding: 0px;
+	background-color: royalblue;
+	background-position: top 0px right 0px;
+	background-size: 50% 50%;
+
+	font-family:'Courier New', Courier, monospace;
+	font-size: large;
+	font-stretch: normal;
+	font-style: normal;
+	font-variant: normal;
+	font-weight: bold;
+	line-height: normal;
+
+}
+
+#wind {
+	background-image: src("LuaUI/Widgets/chmod777_includes/images/dogedog_full.png") src("unitpics/armrl.dds");
+}
+#nettle {
+	background-image: src("unitpics/armrl.dds");
+}
+#dragons-teeth {
+	background-image: src("unitpics/armdrag.dds");
+}
+#air-lab {
+	background-image: src("unitpics/armap.dds");
+}
+
+#solar {
+	background-image: src("unitpics/armsolar.dds");
+}
+#torpedo {
+	background-image: src("unitpics/armtl.dds");
+}
+#camera {
+	background-image: src("unitpics/armeyes.dds");
+}
+#vehicle-lab {
+	background-image: src("unitpics/armvp.dds");
+}
+
+#mex {
+	background-image: src("unitpics/armmex.dds");
+}
+#llt {
+	background-image: src("unitpics/armllt.dds");
+}
+#radar {
+	background-image: src("unitpics/armrad.dds");
+}
+#bot {
+	background-image: src("unitpics/armlab.dds");
+}
