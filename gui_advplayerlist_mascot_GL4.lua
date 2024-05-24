@@ -19,7 +19,7 @@ end
 ---------------------------------------------------------------------------------------------------
 
 local imageDirectory			= ':l:'..LUAUI_DIRNAME..'Images/advplayerslist_mascot/'
-local customImageDirectory		= LUAUI_DIRNAME..'Widgets/Images/advplayerslist_mascot/'
+local customImageDirectory		= LUAUI_DIRNAME..'Widgets/chmod777_includes/images/'
 
 local OPTIONS = {}
 OPTIONS.defaults = {	-- these will be loaded when switching style, but the style will overwrite the those values
