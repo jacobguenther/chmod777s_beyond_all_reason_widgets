@@ -5,9 +5,9 @@
 [Discord #how-to-install-mods](https://discord.com/channels/549281623154229250/831095205175361576)
 
 Download one of the zip files from
-* this page
-* on the releases page to the right
-* the `<> code` button then 'download zip'
+* this page for current releases
+* on the releases page to the right for all releases
+* the `<> code` button then 'download zip' for the most upto date
 
 Extract all of the contents of the zip file into your Widgets directory.
 
@@ -27,11 +27,6 @@ Use with
 `/mascot my_cool_image`
 
 where my_cool_image is the file name of a png not including .png in the folder /LuaUI/Widgets/chmod777_includes/images
-
-### Old Releases
-
-[Download Super Mascot](https://github.com/jacobguenther/chmod777s_beyond_all_reason_widgets/releases/download/initial/super_mascot_full.zip)
-
 
 ## html_css_renderer
 
