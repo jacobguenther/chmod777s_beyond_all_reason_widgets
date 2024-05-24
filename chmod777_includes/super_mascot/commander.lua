@@ -32,8 +32,6 @@ local luaWidgetDir = 'LuaUI/Widgets/'
 local luaIncludeDir = luaWidgetDir..'Include/'
 local LuaShader = VFS.Include(luaIncludeDir..'LuaShader.lua')
 
-local DrawUnitCutomGL4 = VFS.Include(luaWidgetDir..'chmod777_includes/DrawUnitCustom_GL4.lua')
-
 local layout = {
 	{id = 6, name = 'worldposrot', size = 4},
 	{id = 7, name = 'camEye', size = 4},
@@ -44,6 +42,7 @@ local layout = {
 
 local CommanderMascot = {}
 function CommanderMascot:new()
+	local DrawUnitCustomGL4 = VFS.Include(luaWidgetDir..'chmod777_includes/DrawUnitCustom_GL4.lua')
 	local drawUnitCustomGL4 = DrawUnitCustomGL4:new()
 
 	local vsSrc = VFS.LoadFile(luaWidgetDir..'chmod777_includes/shaders/draw_unit_custom.vs.glsl', VFS.RAW)
@@ -167,14 +166,18 @@ function CommanderMascot:new()
 		end
 	end
 
-	function this:delete()
+	function this:Delete()
 		if this.unitShader then
 			unitShader:Finalize()
 		end
 	
 		if this.renderID ~= nil then
-			drawUnitCustomGL4:RemoveUnit(layout, this.currentCommanderDefID, this.renderID)
+			this.drawUnitCustomGL4:RemoveUnit(layout, this.currentCommanderDefID, this.renderID)
 			this.renderID = nil
+		end
+
+		if this.drawUnitCustomGL4 ~= nil then
+			this.drawUnitCustomGL4:Delete()
 		end
 	end
 

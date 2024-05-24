@@ -77,7 +77,7 @@ function widget:Shutdown()
 		shader:Delete()
 	end
 	if quad ~= nil then
-		quad:delete()
+		quad:Delete()
 	end
 end
 

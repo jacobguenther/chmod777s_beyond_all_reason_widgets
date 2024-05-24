@@ -145,12 +145,12 @@ function InstanceQuad:new(maxElements, maxTexturesPerGroup)
 			this:addQuad(data)
 		end
 	end
-	function this:delete()
+	function this:Delete()
 		if this.instanceVBO ~= nil then
 			this.instanceVBO:Delete()
 		end
 		if this.quad ~= nil then
-			this.quad.delete()
+			this.quad.Delete()
 		end
 	end
 

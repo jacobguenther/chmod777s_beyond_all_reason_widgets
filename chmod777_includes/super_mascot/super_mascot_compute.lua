@@ -250,7 +250,7 @@ function widget:Shutdown()
 	end
 
 	if quad ~= nil then
-		quad:delete()
+		quad:Delete()
 	end
 
 	if WG.DeregisterMascot then

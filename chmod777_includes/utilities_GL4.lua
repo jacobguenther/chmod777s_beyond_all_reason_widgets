@@ -1,4 +1,4 @@
--- file: utilites_GL4.lua
+-- File: utilites_GL4.lua
 
 --[[
 Copyright (C) 2024 chmod777
@@ -107,7 +107,7 @@ function Quad:new(minX, minY, maxX, maxY, flipY, flipX)
 		this.VAO:DrawElements(GL_TRIANGLES, indexCount, 0, 0, 0, 0)
 	end
 
-	function this:delete()
+	function this:Delete()
 		if this.indexVBO ~= nil then
 			this.indexVBO:Delete()
 		end
@@ -163,7 +163,7 @@ function FBO:new(sizeX, sizeY, withDepth)
 		depth = depth
 	}
 
-	function this:delete()
+	function this:Delete()
 		if glDeleteTexture then
 			if this.tex ~= nil then
 				glDeleteTexture(this.tex)
