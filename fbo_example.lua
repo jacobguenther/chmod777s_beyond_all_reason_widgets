@@ -134,15 +134,15 @@ void main() {
 }
 ]]
 
-local fbo = nil
+local fbo
 
-local combiningShader = nil
-local combiningQuad = nil
+local combiningShader
+local combiningQuad
 local imgSize = 256
 
-local quadShader = nil
-local quadUniformLocs = {}
-local quad = nil
+local screenQuadShader
+local screenQuadUniformLocs = {}
+local screenQuad
 
 local glViewport = gl.Viewport
 local glClear = gl.Clear
@@ -154,10 +154,7 @@ function widget:Initialize()
 	combiningShader = LuaShader({
 		vertex = vsSrc,
 		fragment = fsSrc,
-		uniformFloat = {},
-		uniformInt = {},
-		textures = {}
-	}, 'Img Shader')
+	}, 'Combining Shader')
 	local combiningShaderCompiled = combiningShader:Initialize()
 	if not combiningShaderCompiled then
 		Spring.Echo('Img Shader: compilation failed')
@@ -165,46 +162,43 @@ function widget:Initialize()
 	end
 	combiningQuad = Quad:new(-1,-1, 1, 1, true)
 
-	quadShader = LuaShader({
+	screenQuadShader = LuaShader({
 		vertex = quadVsSrc,
 		fragment = quadFsSrc,
-		uniformFloat = {},
-		uniformInt = {},
-		textures = {}
 	}, 'Quad Shader')
-	local quadShaderCompiled = quadShader:Initialize()
+	local quadShaderCompiled = screenQuadShader:Initialize()
 	if not quadShaderCompiled then
 		Spring.Echo('Quad Shader: compilation failed')
 		widgetHandler:RemoveWidget()
 	end
 
-	local shader = quadShader.shaderObj;
-	quadUniformLocs['screenPos'] = gl.GetUniformLocation(shader, 'screenPos')
-	quadUniformLocs['imgSize'] = gl.GetUniformLocation(shader, 'imgSize')
-	quadUniformLocs['viewGeometry'] = gl.GetUniformLocation(shader, 'viewGeometry')
+	local shader = screenQuadShader.shaderObj;
+	screenQuadUniformLocs['screenPos'] = gl.GetUniformLocation(shader, 'screenPos')
+	screenQuadUniformLocs['imgSize'] = gl.GetUniformLocation(shader, 'imgSize')
+	screenQuadUniformLocs['viewGeometry'] = gl.GetUniformLocation(shader, 'viewGeometry')
 
-	quad = Quad:new()
+	screenQuad = Quad:new()
 
 	fbo = FBO:new(imgSize, imgSize, false)
 end
 
 function widget:Shutdown()
 	if fbo ~= nil then
-		fbo:delete()
+		fbo:Delete()
 	end
 
-	if quadShader ~= nil then
-		quadShader:Delete()
+	if screenQuadShader ~= nil then
+		screenQuadShader:Delete()
 	end
 	if combineShader ~= nil then
 		combineShader:Delete()
 	end
 
-	if quad ~= nil then
-		quad:delete()
+	if screenQuad ~= nil then
+		screenQuad:Delete()
 	end
 	if combiningQuad ~= nil then
-		combiningQuad:delete()
+		combiningQuad:Delete()
 	end
 end
 
@@ -235,12 +229,12 @@ function widget:DrawScreen()
 	glViewport(0, 0, viewGeometryX, viewGeometryY)
 
 	-- display the texture on a quad in the center of the screen
-	quadShader:Activate()
+	screenQuadShader:Activate()
 		glTexture(0, fbo.tex)
-		glUniform(quadUniformLocs['imgSize'], imgSize)
-		glUniform(quadUniformLocs['screenPos'], viewGeometryX/2, viewGeometryY/2)
-		glUniform(quadUniformLocs['viewGeometry'], viewGeometryX, viewGeometryY)
-		quad:draw()
+		glUniform(screenQuadUniformLocs['imgSize'], imgSize)
+		glUniform(screenQuadUniformLocs['screenPos'], viewGeometryX/2, viewGeometryY/2)
+		glUniform(screenQuadUniformLocs['viewGeometry'], viewGeometryX, viewGeometryY)
+		screenQuad:draw()
 		glTexture(0, false)
-	quadShader:Deactivate()
+	screenQuadShader:Deactivate()
 end
