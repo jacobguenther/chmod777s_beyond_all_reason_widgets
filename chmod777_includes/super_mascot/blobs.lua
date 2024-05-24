@@ -1,14 +1,24 @@
 -- File: blobs.lua
 
+--[[
+Copyright (C) 2024 chmod777
 
+This program is free software: you can redistribute it and/or modify it under
+the terms of the GNU Affero General Public License version 3 as published by the
+Free Software Foundation.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+PARTICULAR PURPOSE. See the GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License along
+with this program. If not, see <https://www.gnu.org/licenses/>. 
+]]
 
 local GL_RGBAF32 = 34836
 
 local luaWidgetDir = 'LuaUI/Widgets/'
-local Quad, FBO = VFS.Include(luaWidgetDir..'utilities_GL4.lua')
-local computeSource = VFS.LoadFile(luaWidgetDir..'super_mascot/shaders/ray_march.glsl', VFS.RAW)
-local vsSrc = VFS.LoadFile(luaWidgetDir..'super_mascot/shaders/quad.vs.glsl', VFS.RAW)
-local fsSrc = VFS.LoadFile(luaWidgetDir..'super_mascot/shaders/quad.fs.glsl', VFS.RAW)
+local Quad, FBO = VFS.Include(luaWidgetDir..'chmod777_includes/utilities_GL4.lua')
 
 local luaIncludeDir = luaWidgetDir..'Include/'
 VFS.Include(luaIncludeDir..'instancevbotable.lua')
@@ -23,6 +33,25 @@ local MIN_DISTANCE = 0.001
 local SMOOTHING_FACTOR = 0.5
 local TIMESCALE = 0.5
 local MOVESCALE = 2.0
+
+
+local glUseShader = gl.UseShader
+local glBindImageTexture = gl.BindImageTexture
+local glTexture = gl.Texture
+local glUniform = gl.Uniform
+local glDispatchCompute = gl.DispatchCompute
+local glBlending = gl.Blending
+
+local GL_ARRAY_BUFFER = GL.ARRAY_BUFFER
+local GL_NEAREST = GL.NEAREST
+local GL_CLAMP_TO_EDGE = GL.CLAMP_TO_EDGE
+local GL_READ_WRITE = GL.READ_WRITE
+local GL_SHADER_STORAGE_BUFFER = GL.SHADER_STORAGE_BUFFER
+local GL_SHADER_IMAGE_ACCESS_BARRIER_BIT = GL.SHADER_IMAGE_ACCESS_BARRIER_BIT
+local GL_ALL_BARRIER_BITS = GL.ALL_BARRIER_BITS
+local GL_SRC_ALPHA = GL.SRC_ALPHA
+local GL_ONE = GL.ONE
+local GL_ONE_MINUS_SRC_ALPHA = GL.ONE_MINUS_SRC_ALPHA
 
 -- Resources
 -- https://iquilezles.org/articles/palettes/
@@ -71,53 +100,6 @@ local PALLETS = {
 	}
 }
 
-
-local computeShader = nil
-local timeUniformLoc = nil
-local shapeSSBO = {
-	ssbo = nil,
-	binding = 5,
-	elementSize = 7,
-	elementCount = 12 * SPHERE_COUNT + 16,
-}
-local cameraSSBO = {
-	ssbo = nil,
-	binding = 7,
-	elementSize = 1,
-	elementCount = 24, -- real = 17 but must be aligned
-}
-shouldUpdateBuffers = true
-
-local renderTexture = nil
-
-local BuildRenderSurface
-local RenderToSurface
-
-local time = 0;
-
-local simpleShader = nil
-local quad = nil
-
-function Draw()
-	gl.UseShader(computeShader)
-		local unit,level,layer = 0,0,0
-		gl.BindImageTexture(unit, renderTexture, level, layer, GL.READ_WRITE, GL_RGBAF32)
-		gl.Texture(unit, renderTexture)
-		if shouldUpdateBuffers then
-			shapeSSBO.ssbo:BindBufferRange(shapeSSBO.binding, 0, shapeSSBO.elementCount, GL.SHADER_STORAGE_BUFFER)
-			cameraSSBO.ssbo:BindBufferRange(cameraSSBO.binding, 0, cameraSSBO.elementCount, GL.SHADER_STORAGE_BUFFER)
-			shouldUpdateBuffers = false
-		end
-		gl.Uniform(timeUniformLoc, time)
-		gl.DispatchCompute(WIDTH, HEIGHT, 1, GL.SHADER_IMAGE_ACCESS_BARRIER_BIT) -- GL.ALL_BARRIER_BITS
-	simpleShader:Activate()
-		gl.Blending(GL.SRC_ALPHA, GL.ONE)
-		gl.Blending(GL.SRC_ALPHA, GL.ONE_MINUS_SRC_ALPHA)
-		quad:draw()
-		gl.Blending(GL.SRC_ALPHA, GL.ONE_MINUS_SRC_ALPHA)
-	simpleShader:Deactivate()
-end
-
 local function TableConcat(t1,t2)
 	for i=1,#t2 do
 		t1[#t1+1] = t2[i]
@@ -125,8 +107,18 @@ local function TableConcat(t1,t2)
 	return t1
 end
 
-function widget:Initialize()
-	computeShader = gl.CreateShader({
+local computeShader = nil
+local timeUniformLoc = nil
+local shouldUpdateBuffers = true
+local renderTexture = nil
+local time = 0;
+local simpleShader = nil
+local quad = nil
+
+local BlobsMascot = {}
+function BlobsMascot:new()
+	local computeSource = VFS.LoadFile(luaWidgetDir..'chmod777_includes/shaders/ray_march.glsl', VFS.RAW)
+	local computeShader = gl.CreateShader({
 		defines = {
 			'#version 430\n',
 			'#extension GL_ARB_compute_shader: require\n',
@@ -145,11 +137,15 @@ function widget:Initialize()
 		definitions = {},
 		compute = computeSource,
 	})
-	if (computeShader == nil) then
-		widgetHandler:RemoveWidget()
-		return
-	end
-	timeUniformLoc = gl.GetUniformLocation(computeShader, 'time');
+	local timeUniformLoc = gl.GetUniformLocation(computeShader, 'time');
+
+	local vsSrc = VFS.LoadFile(luaWidgetDir..'chmod777_includes/shaders/quad.vs.glsl', VFS.RAW)
+	local fsSrc = VFS.LoadFile(luaWidgetDir..'chmod777_includes/shaders/quad.fs.glsl', VFS.RAW)
+	local simpleShader = LuaShader({
+		vertex = vsSrc,
+		fragment = fsSrc,
+	}, 'simpleShader')
+	simpleShader:Initialize()
 
 	math.randomseed(os.clock())
 	local shapes = {}
@@ -179,6 +175,12 @@ function widget:Initialize()
 	TableConcat(shapes, position)
 	TableConcat(shapes, speed)
 	TableConcat(shapes, radius)
+	local shapeSSBO = {
+		ssbo = nil,
+		binding = 5,
+		elementSize = 7,
+		elementCount = 12 * SPHERE_COUNT + 16,
+	}
 	shapeSSBO.ssbo = gl.GetVBO(GL.ARRAY_BUFFER, true)
 	shapeSSBO.ssbo:Define(12 * SPHERE_COUNT + 16, {
 		{id = shapeSSBO.binding, name='spheres', size=1},
@@ -192,56 +194,86 @@ function widget:Initialize()
 		0.0, 1.0, 0.0, 1.0, -- cam_yAxis
 		45.0,               -- cam_fov
 	}
-	cameraSSBO.ssbo = gl.GetVBO(GL.ARRAY_BUFFER, true)
+	local cameraSSBO = {
+		ssbo = nil,
+		binding = 7,
+		elementSize = 1,
+		elementCount = 24, -- real = 17 but must be aligned
+	}
+	cameraSSBO.ssbo = gl.GetVBO(GL_ARRAY_BUFFER, true)
 	cameraSSBO.ssbo:Define(cameraSSBO.elementCount, {
 		{id = cameraSSBO.binding, name='Camera', size=cameraSSBO.elementSize}
 	})
 	cameraSSBO.ssbo:Upload(camera)
-	renderTexture = gl.CreateTexture(WIDTH, HEIGHT, {
+	local renderTexture = gl.CreateTexture(WIDTH, HEIGHT, {
 		target = GL_TEXTURE_2D,
 		boarder = false,
-		min_filter = GL.NEAREST,
-		mag_filter = GL.NEAREST,
-		wrap_s = GL.CLAMP_TO_EDGE,
-		wrap_t = GL.CLAMP_TO_EDGE,
+		min_filter = GL_NEAREST,
+		mag_filter = GL_NEAREST,
+		wrap_s = GL_CLAMP_TO_EDGE,
+		wrap_t = GL_CLAMP_TO_EDGE,
 		format = GL_RGBAF32,
 	})
 
-	simpleShader = LuaShader({
-		vertex = vsSrc,
-		fragment = fsSrc,
-	}, 'simpleShader')
-	simpleShader:Initialize()
+	local quad = Quad:new()
 
-	quad = Quad:new()
+	local this = {
+		computeShader = computeShader,
+		simpleShader = simpleShader,
+		renderTexture = renderTexture,
+		shouldUpdateBuffers = true,
+		shapeSSBO = shapeSSBO,
+		cameraSSBO = cameraSSBO,
+		timeUniformLoc = timeUniformLoc,
+		time = 0,
+		quad = quad,
+	}
 
-	WG.RegisterMascot('blobs', Draw, nil)
+	function this:Draw()
+		glUseShader(computeShader)
+			local unit,level,layer = 0,0,0
+			glBindImageTexture(unit, renderTexture, level, layer, GL_READ_WRITE, GL_RGBAF32)
+			glTexture(unit, this.renderTexture)
+			if this.shouldUpdateBuffers then
+				this.shapeSSBO.ssbo:BindBufferRange(this.shapeSSBO.binding, 0, this.shapeSSBO.elementCount, GL_SHADER_STORAGE_BUFFER)
+				this.cameraSSBO.ssbo:BindBufferRange(this.cameraSSBO.binding, 0, this.cameraSSBO.elementCount, GL_SHADER_STORAGE_BUFFER)
+				this.shouldUpdateBuffers = false
+			end
+			glUniform(this.timeUniformLoc, this.time)
+			glDispatchCompute(WIDTH, HEIGHT, 1, GL_SHADER_IMAGE_ACCESS_BARRIER_BIT) -- GL_ALL_BARRIER_BITS
+		simpleShader:Activate()
+			glBlending(GL_SRC_ALPHA, GL_ONE)
+			glBlending(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
+			quad:draw()
+			glBlending(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
+		simpleShader:Deactivate()
+	end
+
+	function this:on_Update(dt)
+		this.time = this.time + dt;
+	end
+
+	function this:Delete()
+		if computeShader ~= nil then
+			-- computeShader:Delete()
+		end
+		if simpleShader ~= nil then
+			simpleShader:Delete()
+		end
+
+		if shapeSSBO.ssbo ~= nil then
+			shapeSSBO.ssbo:Delete()
+		end
+		if cameraSSBO.ssbo ~= nil then
+			cameraSSBO.ssbo:Delete()
+		end
+	
+		if quad ~= nil then
+			quad:Delete()
+		end
+	end
+
+	return this
 end
 
-function widget:Update(dt)
-	time = time + dt;
-end
-
-function widget:Shutdown()
-	if computeShader ~= nil then
-		-- computeShader:Delete()
-	end
-	if shapeSSBO.ssbo ~= nil then
-		shapeSSBO.ssbo:Delete()
-	end
-	if cameraSSBO.ssbo ~= nil then
-		cameraSSBO.ssbo:Delete()
-	end
-
-	if simpleShader ~= nil then
-		simpleShader:Delete()
-	end
-
-	if quad ~= nil then
-		quad:Delete()
-	end
-
-	if WG.DeregisterMascot then
-		WG.DeregisterMascot('blobs')
-	end
-end
+return BlobsMascot
