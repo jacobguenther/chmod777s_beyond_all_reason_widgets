@@ -5,7 +5,7 @@
 
 // File: draw_unit_custom.vs.glsl
 // Author: chmod777
-// Based on a shader by Beherith and Ivand
+// Originally based on a shader by Beherith and Ivand (gfx_drawunitshape_gl4.lua)
 
 /*
 Copyright (C) 2024 chmod777
@@ -22,43 +22,117 @@ You should have received a copy of the GNU Affero General Public License along
 with this program. If not, see <https://www.gnu.org/licenses/>. 
 */
 
-layout (location = 0) in vec3 pos;
-layout (location = 1) in vec3 normal;
-layout (location = 2) in vec3 T;
-layout (location = 3) in vec3 B;
-layout (location = 4) in vec4 uv;
+precision highp float;
+precision highp int;
+
+layout (location = 0) in vec3 aPos;
+layout (location = 1) in vec3 aNormal;
+layout (location = 2) in vec3 aTangent;
+layout (location = 3) in vec3 aBi;
+layout (location = 4) in vec4 aUV;
 layout (location = 5) in uvec2 bonesInfo; //boneIDs, boneWeights
 
 #define pieceIndex (bonesInfo.x & 0x000000FFu)
 
-layout (location = 6) in vec4 worldposrot;  // xyz = pos, w = rotation
-layout (location = 7) in vec4 camEye;       // xyz, w = unused
-layout (location = 8) in vec4 camTarget;    // xyz, w = unused
-layout (location = 9) in vec4 perspParams;  // x = near, y = far, z = fovy, w = aspect(unused)
+layout (location = 6) in vec4 iWorldPosRot;  // xyz = pos, w = rotation
+layout (location = 7) in vec4 iCamEye;       // xyz, w = unused
+layout (location = 8) in vec4 iCamTarget;    // xyz, w = unused
+layout (location = 9) in vec4 iPerspParams;  // x = near, y = far, z = fovy, w = aspect(unused)
 layout (location = 10) in uvec4 instData;
 
-mat4 camLookAt(vec3 eye, vec3 right, vec3 up, vec3 dir) {
-	mat4 lookAt = mat4(1.0);
-	lookAt[0][0] = right.x;
-	lookAt[1][0] = right.y;
-	lookAt[2][0] = right.z;
-	lookAt[0][1] = up.x;
-	lookAt[1][1] = up.y;
-	lookAt[2][1] = up.z;
-	lookAt[0][2] = dir.x;
-	lookAt[1][2] = dir.y;
-	lookAt[2][2] = dir.z;
-	lookAt[3].xyz = -eye;
-	return lookAt;
+
+//__ENGINEUNIFORMBUFFERDEFS__
+
+layout(std140, binding=0) buffer MatrixBuffer {
+	mat4 mat[];
+};
+
+out DataVS {
+	vec2 uv;
+	vec3 currentTeamColor;
+
+	vec3 camEye;
+	vec3 camTarget;
+
+	vec3 modelVertPos;
+	vec3 worldVertPos;
+
+	mat3 vertTBN;
+	vec3 worldNormal;
+};
+
+
+mat4 LookAtTarget(vec3 eye, vec3 target);
+mat4 perspective(float near, float far, float fovy);
+
+void main() {
+	uint baseIndex = instData.x;
+	mat4 pieceMatrix = mat[baseIndex + pieceIndex + 1u];
+	
+	float rotation = iWorldPosRot.w;
+	mat4 localRotationMatrix = mat4(rotation3dY(rotation));
+
+	mat4 worldTranslation = mat4(1.0);
+	worldTranslation[3] = vec4(iWorldPosRot.xyz, 1.0);
+
+	mat4 worldMat = worldTranslation
+		* localRotationMatrix
+		* pieceMatrix;
+	vec4 worldPos = worldMat * vec4(aPos, 1.0);
+
+	mat4 customViewMat = LookAtTarget(iCamEye.xyz, iCamTarget.xyz);
+	float near = iPerspParams.x;
+	float far = iPerspParams.y;
+	float fovy = iPerspParams.z;
+	mat4 customProj = perspective(near, far, fovy);
+	gl_Position = customProj * customViewMat * worldPos;
+
+	// vsNormal = mat3(transpose(inverse(worldMat))) * aNormal;
+
+	// https://learnopengl.com/PBR/Lighting ------------------------------------
+	vec3 T = normalize(vec3(worldMat * vec4(aTangent, 0.0)));
+	vec3 N = normalize(vec3(worldMat * vec4(aNormal, 0.0)));
+	// re-orthogonalize T with respect to N
+	T = normalize(T - dot(T, N) * N);
+	// then retrieve perpendicular vector B with the cross product of T and N
+	vec3 B = cross(N, T);
+	vertTBN = mat3(T, B, N);
+	// https://learnopengl.com/PBR/Lighting ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+
+	uv = aUV.xy;
+
+	uint teamIndex = (instData.z & 0x000000FFu); // leftmost ubyte is teamIndex
+	currentTeamColor = teamColor[teamIndex].rgb;
+
+	camEye = iCamEye.xyz;
+	camTarget = iCamTarget.xyz;
+
+	modelVertPos = aPos;
+	worldVertPos = worldPos.xyz;
+
+	worldNormal = mat3(transpose(inverse(worldMat))) * aNormal;
+	// worldTangent = T;
+	// worldBitangent = B;
 }
-mat4 camLookAtTarget(vec3 eye, vec3 target) {
+
+
+// ShieldSphereColor.frag
+mat4 LookAtTarget(vec3 eye, vec3 target) {
 	vec3 localUp = vec3(0.0, 1.0, 0.0);
 
-	vec3 dir = normalize(target - eye);
-	vec3 right = normalize(cross(localUp, dir));
-	vec3 up = normalize(cross(dir, right));
-	
-	return camLookAt(eye, right, up, dir);
+	vec3 zaxis = normalize(eye - target);
+	vec3 xaxis = normalize(cross(localUp, zaxis));
+	vec3 yaxis = cross(zaxis, xaxis);
+
+	mat4 lookAtMatrix;
+
+	lookAtMatrix[0] = vec4(xaxis.x, yaxis.x, zaxis.x, 0.0);
+	lookAtMatrix[1] = vec4(xaxis.y, yaxis.y, zaxis.y, 0.0);
+	lookAtMatrix[2] = vec4(xaxis.z, yaxis.z, zaxis.z, 0.0);
+	lookAtMatrix[3] = vec4(dot(xaxis, -eye), dot(yaxis, -eye), dot(zaxis, -eye), 1.0);
+
+	return lookAtMatrix;
 }
 mat4 perspective(float near, float far, float fovy) {
 	float half_fov = fovy/2.0;
@@ -75,43 +149,4 @@ mat4 perspective(float near, float far, float fovy) {
 		vec4(0, 0, a, -1),
 		vec4(0, 0, b, 0)
 	);
-}
-
-//__ENGINEUNIFORMBUFFERDEFS__
-
-layout(std140, binding=0) buffer MatrixBuffer {
-	mat4 mat[];
-};
-
-out vec2 v_uv;
-out vec4 myTeamColor;
-
-void main() {
-	uint baseIndex = instData.x;
-
-	mat4 pieceMatrix = mat[baseIndex + pieceIndex + 1u];
-	
-	float rotation = worldposrot.w;
-	mat4 localRotationMatrix = mat4(rotation3dY(rotation));
-
-	mat4 worldTranslation = mat4(1.0);
-	vec4 worldPos = vec4(worldposrot.xyz, 1.0);
-	worldTranslation[3] = worldPos;
-
-	vec4 worldModelPos = worldTranslation
-		* localRotationMatrix
-		* pieceMatrix
-		* vec4(pos, 1.0);
-
-	uint teamIndex = (instData.z & 0x000000FFu); // leftmost ubyte is teamIndex
-	myTeamColor = teamColor[teamIndex];
-
-	v_uv = uv.xy;
-
-	mat4 customViewMat = camLookAtTarget(camEye.xyz, camTarget.xyz);
-	float near = perspParams.x;
-	float far = perspParams.y;
-	float fovy = perspParams.z;
-	mat4 customProj = perspective(near, far, fovy);
-	gl_Position = customProj * customViewMat * worldModelPos;
 }
