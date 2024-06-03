@@ -16,5 +16,5 @@ out vec4 fragColor;
 
 void main() {
 	fragColor = texture(img, vs_in.uv);
-	fragColor.a += 0.5;
+	fragColor.a += 0.1;
 }
