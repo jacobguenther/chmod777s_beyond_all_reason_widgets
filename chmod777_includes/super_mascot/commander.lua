@@ -25,7 +25,9 @@ with this program. If not, see <https://www.gnu.org/licenses/>.
 local glCulling = gl.Culling
 local glDepthTest = gl.DepthTest
 local glDepthMask = gl.DepthMask
+local glTexture = gl.Texture
 local glUnitShapeTextures = gl.UnitShapeTextures
+local GL_BACK = GL.BACK
 local spEcho = Spring.Echo
 
 local luaWidgetDir = 'LuaUI/Widgets/'
@@ -77,6 +79,7 @@ function CommanderMascot:new()
 		isCommander = isCommander,
 		currentCommanderDefID = nil,
 		currentCommanderID = nil,
+		commanderNormal = nil,
 	}
 
 	function this:updatePlayer()
@@ -92,8 +95,26 @@ function CommanderMascot:new()
 			if isCommander[unitDefID] then
 				this.currentCommanderDefID = unitDefID
 				this.currentCommanderID = unitID
+				this:updateCommanderNormal()
+				local name = UnitDefs[this.currentCommanderDefID].objectname
+				Spring.Echo(name, Spring.GetModelPieceMap)
+				-- if Spring.GetModelPieceMap then
+				-- 	local piece_map = Spring.GetModelPieceMap("Units/armcom.s3o")
+				-- 	local formatted = ""
+				-- 	for name,index in pairs(piece_map) do
+				-- 		formatted = formatted.." "..name.." "..index
+				-- 	end
+				-- 	Spring.Echo(formatted)
+				-- end
 				break
 			end
+		end
+	end
+	function this:updateCommanderNormal()
+		local def = UnitDefs[this.currentCommanderDefID]
+		if def and def.customParams and def.customParams.normaltex then
+			this.commanderNormal = def.customParams.normaltex
+			Spring.Echo(this.commanderNormal)
 		end
 	end
 
@@ -101,12 +122,16 @@ function CommanderMascot:new()
 		if this.currentCommanderDefID == nil then
 			return
 		end
-		glCulling(GL.BACK)
+		glCulling(GL_BACK)
 		glDepthTest(true)
 		glDepthMask(true)
 		unitShader:Activate()
 			glUnitShapeTextures(this.currentCommanderDefID, true)
+			glTexture(3, this.commanderNormal)
+
 			this.drawUnitCustomGL4:GetUnitCustomVAO(this.currentCommanderDefID, layout).VAO:Submit()
+			
+			glTexture(3, false)
 			glUnitShapeTextures(this.currentCommanderDefID, false)
 		unitShader:Deactivate()
 		glDepthMask(false)
@@ -121,18 +146,20 @@ function CommanderMascot:new()
 		if yaw ~= this.prevYaw then
 			this.prevYaw = yaw
 			-- local dirX, dirY, dirZ = Spring.GetUnitDirection(myCommanderID)
-			-- local posX, posY, posZ, midX, midY, midZ, aimX, aimY, aimZ = Spring.GetUnitPosition(myCommanderID)
+			local px, py, pz, midX, midY, midZ, aimX, aimY, aimZ = Spring.GetUnitPosition(this.currentCommanderID, true)
 			-- local isCloacked = Spring.GetUnitIsCloaked(myCommanderID);
 	
 			local alpha = 1
 			local isStatic = 0
 
-			local camEx, camEy, camEz = 0.0, 25.0, 80.0
-			local camTx, camTy, camTz = 0.0, 25.0, 0.0
-			local near, far, fovy = 0.001, 200, math.rad(120)
+			local px, py, pz = 0.0, -midY/2+15, 0.0
+
+			local camEx, camEy, camEz = 0.0, 40.0, -80.0
+			local camTx, camTy, camTz = 0.0, 0.0, 0.0
+			local near, far, fovy = 0.1, 250, math.rad(120)
 
 			local instanceData = {
-				0,       -20,     0,-yaw, -- posrot
+				px,       py,    pz,-yaw, -- posrot
 				camEx, camEy, camEz,   0, -- camEye
 				camTx, camTy, camTz,   0, -- camTarget
 				near,    far,  fovy,   0, -- perspParams
