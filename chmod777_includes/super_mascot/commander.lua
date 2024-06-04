@@ -88,6 +88,10 @@ function CommanderMascot:new()
 		this.currentAllyTeamID = Spring.GetMyAllyTeamID()
 	end
 	function this:updateCommander()
+		if this.currentCommanderID then
+			Spring.SetUnitAlwaysUpdateMatrix(this.currentCommanderID, false)
+		end
+
 		local units = Spring.GetTeamUnits(this.currentTeamID)
 		for i=1,#units do
 			local unitID = units[i]
@@ -95,8 +99,12 @@ function CommanderMascot:new()
 			if isCommander[unitDefID] then
 				this.currentCommanderDefID = unitDefID
 				this.currentCommanderID = unitID
+
 				this:updateCommanderNormal()
-				local name = UnitDefs[this.currentCommanderDefID].objectname
+
+				Spring.SetUnitAlwaysUpdateMatrix(this.currentCommanderID, true)
+
+				-- local name = UnitDefs[this.currentCommanderDefID].objectname
 				-- Spring.Echo(name, Spring.GetModelPieceMap)
 				-- if Spring.GetModelPieceMap then
 				-- 	local piece_map = Spring.GetModelPieceMap("Units/armcom.s3o")
@@ -114,7 +122,6 @@ function CommanderMascot:new()
 		local def = UnitDefs[this.currentCommanderDefID]
 		if def and def.customParams and def.customParams.normaltex then
 			this.commanderNormal = def.customParams.normaltex
-			-- Spring.Echo(this.commanderNormal)
 		end
 	end
 
@@ -142,15 +149,13 @@ function CommanderMascot:new()
 		if this.currentCommanderID == nil then
 			return
 		end
+
 		local pitch, yaw, roll = Spring.GetUnitRotation(this.currentCommanderID)
 		if yaw ~= this.prevYaw then
 			this.prevYaw = yaw
 			-- local dirX, dirY, dirZ = Spring.GetUnitDirection(myCommanderID)
-			local px, py, pz, midX, midY, midZ, aimX, aimY, aimZ = Spring.GetUnitPosition(this.currentCommanderID, true)
+			-- local px, py, pz, midX, midY, midZ, aimX, aimY, aimZ = Spring.GetUnitPosition(this.currentCommanderID, true)
 			-- local isCloacked = Spring.GetUnitIsCloaked(myCommanderID);
-	
-			local alpha = 1
-			local isStatic = 0
 
 			local px, py, pz = 0.0, -35, 0.0
 
