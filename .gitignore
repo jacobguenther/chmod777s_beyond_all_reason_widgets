@@ -1,1 +1,5 @@
 update_widgets.sh
+chmod777_includes/html_css
+
+
+*_test.lua
