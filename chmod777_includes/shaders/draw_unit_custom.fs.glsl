@@ -43,6 +43,9 @@ layout (binding = 3) uniform sampler2D normaltex;
 
 const float PI = 3.14159265359;
 
+#define NORM2SNORM(value) (value * 2.0 - 1.0)
+#define SNORM2NORM(value) (value * 0.5 + 0.5)
+
 const float GAMMA = 2.2;
 const vec3 LUMA = vec3(0.2126, 0.7152, 0.0722);
 
@@ -102,16 +105,32 @@ in DataVS {
 	vec3 camEye;
 	vec3 camTarget;
 
-	vec3 modelVertPos;
-	vec3 worldVertPos;
+	// mat3 vertTBN;
+	// vec3 worldNormal;
 
-	mat3 vertTBN;
+	vec4 modelPosition;
+	vec3 modelNormal;
+	vec3 modelTangent;
+	vec3 modelBitangent;
+
+	vec4 worldPosition;
 	vec3 worldNormal;
-};
+	vec3 worldTangent;
+	vec3 worldBitangent;
+
+	vec4 viewPosition;
+	vec3 viewNormal;
+	vec3 viewTangent;
+	vec3 viewBitangent;
+
+	mat3 modelTBN;
+	mat3 worldTBN;
+	mat3 viewTBN;
+} IN;
 
 void main() {
-	vec4 color0 = texture(tex0, uv.xy);
-	vec4 color1 = texture(tex1, uv.xy);
+	vec4 color0 = texture(tex0, IN.uv.xy);
+	vec4 color1 = texture(tex1, IN.uv.xy);
 
 	float teamcolor_mask = color0.a;
 
@@ -120,25 +139,21 @@ void main() {
 	float roughness = color1.b;
 
 	vec3 albedo = color0.rgb;
-	albedo = mix(albedo, currentTeamColor.rgb, teamcolor_mask);
+	albedo = mix(albedo, IN.currentTeamColor.rgb, teamcolor_mask);
 	albedo = SRGBtoLINEAR(albedo);
 
-	vec3 normalmap = texture(normaltex, uv.xy).rgb;
-	normalmap = normalmap * 2.0 - 1.0;
-	normalmap = vertTBN * normalmap;
-	normalmap = normalize(normalmap);
+	// vec3 N = IN.worldNormal;
+	// vec3 N = getFlatNormal();
+	// vec3 N = normalize(IN.worldTBN * NORM2SNORM(texture(normaltex, IN.uv.xy).rgb));
+	vec3 N = getNormalFromMap();
 
-	vec3 N = normalmap;
-	// N = worldNormal;
-	// N = getNormalFromMap();
-	// N = getFlatNormal();
-	vec3 V = normalize(camEye - worldVertPos);
+	vec3 V = normalize(IN.camEye - IN.worldPosition.xyz);
 
 	vec3 F0 = vec3(0.04);
 
 	//   Linear                  Material
-	F0 = vec3(0.95, 0.93, 0.88); // silver
-	// F0 = vec3(0.91, 0.92, 0.92); // aluminium
+	// F0 = vec3(0.95, 0.93, 0.88); // silver
+	F0 = vec3(0.91, 0.92, 0.92); // aluminium
 	// F0 = vec3(0.56, 0.57, 0.58); // iron
 
 	F0 = mix(F0, albedo, metallic);
@@ -201,24 +216,26 @@ void main() {
 
 vec3 getFlatNormal()
 {
-	vec3 Q1  = dFdx(worldVertPos);
-	vec3 Q2  = dFdy(worldVertPos);
+	vec3 Q1  = dFdx(IN.worldPosition.xyz);
+	vec3 Q2  = dFdy(IN.worldPosition.xyz);
 	return normalize(cross(Q1, Q2));
 }
 
 // https://learnopengl.com/PBR/Lighting ----------------------------------------
 vec3 getNormalFromMap()
 {
-	vec3 tangentNormal = texture(normaltex, uv).xyz * 2.0 - 1.0;
+	vec3 tangentNormal = texture(normaltex, IN.uv).xyz * 2.0 - 1.0;
 
-	vec3 Q1  = dFdx(worldVertPos);
-	vec3 Q2  = dFdy(worldVertPos);
-	vec2 st1 = dFdx(uv);
-	vec2 st2 = dFdy(uv);
+	vec3 Q1  = dFdx(IN.worldPosition.xyz);
+	vec3 Q2  = dFdy(IN.worldPosition.xyz);
+	vec2 st1 = dFdx(IN.uv);
+	vec2 st2 = dFdy(IN.uv);
 
-	vec3 N = normalize(worldNormal);
-	vec3 T = normalize(Q1*st2.t - Q2*st1.t);
-	vec3 B = -normalize(cross(N, T));
+	vec3 N = normalize(cross(Q1, Q2)); // flat normal
+	// N = IN.worldNormal;
+	// N = normalize(IN.worldNormal);
+	vec3 T = clamp(normalize(Q1*st2.t - Q2*st1.t), 0.000001, 1.0);
+	vec3 B = normalize(cross(N, T));
 	mat3 TBN = mat3(T, B, N);
 
 	return normalize(TBN * tangentNormal);
