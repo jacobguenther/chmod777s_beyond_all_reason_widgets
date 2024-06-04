@@ -25,10 +25,10 @@ with this program. If not, see <https://www.gnu.org/licenses/>.
 precision highp float;
 precision highp int;
 
-layout (location = 0) in vec3 aPos;
+layout (location = 0) in vec3 aPosition;
 layout (location = 1) in vec3 aNormal;
 layout (location = 2) in vec3 aTangent;
-layout (location = 3) in vec3 aBi;
+layout (location = 3) in vec3 aBitangent;
 layout (location = 4) in vec4 aUV;
 layout (location = 5) in uvec2 bonesInfo; //boneIDs, boneWeights
 
@@ -54,12 +54,25 @@ out DataVS {
 	vec3 camEye;
 	vec3 camTarget;
 
-	vec3 modelVertPos;
-	vec3 worldVertPos;
+	vec4 modelPosition;
+	vec3 modelNormal;
+	vec3 modelTangent;
+	vec3 modelBitangent;
 
-	mat3 vertTBN;
+	vec4 worldPosition;
 	vec3 worldNormal;
-};
+	vec3 worldTangent;
+	vec3 worldBitangent;
+
+	vec4 viewPosition;
+	vec3 viewNormal;
+	vec3 viewTangent;
+	vec3 viewBitangent;
+
+	mat3 modelTBN;
+	mat3 worldTBN;
+	mat3 viewTBN;
+} OUT;
 
 
 mat4 LookAtTarget(vec3 eye, vec3 target);
@@ -67,53 +80,66 @@ mat4 perspective(float near, float far, float fovy);
 
 void main() {
 	uint baseIndex = instData.x;
+
+	mat4 baseMatrix = mat[baseIndex];
+	baseMatrix = mat4(1.0);
 	mat4 pieceMatrix = mat[baseIndex + pieceIndex + 1u];
-	
+
 	float rotation = iWorldPosRot.w;
-	mat4 localRotationMatrix = mat4(rotation3dY(rotation));
+	mat4 modelRotationMatrix = mat4(rotation3dY(rotation));
 
-	mat4 worldTranslation = mat4(1.0);
-	worldTranslation[3] = vec4(iWorldPosRot.xyz, 1.0);
+	mat4 modelTranslation = mat4(1.0);
+	modelTranslation[3] = vec4(iWorldPosRot.xyz, 1.0);
 
-	mat4 worldMat = worldTranslation
-		* localRotationMatrix
+	mat4 modelMat = modelTranslation
+		* modelRotationMatrix
+		* baseMatrix
 		* pieceMatrix;
-	vec4 worldPos = worldMat * vec4(aPos, 1.0);
+	mat4 viewMat = LookAtTarget(iCamEye.xyz, iCamTarget.xyz);
+	mat4 projMat = perspective(iPerspParams.x, iPerspParams.y, iPerspParams.z);
 
-	mat4 customViewMat = LookAtTarget(iCamEye.xyz, iCamTarget.xyz);
-	float near = iPerspParams.x;
-	float far = iPerspParams.y;
-	float fovy = iPerspParams.z;
-	mat4 customProj = perspective(near, far, fovy);
-	gl_Position = customProj * customViewMat * worldPos;
+	mat3 modelMat3 = mat3(modelMat);
+	mat4 modelViewMat = viewMat * modelMat;
+	mat3 modelViewMat3 = mat3(modelViewMat);
 
-	// vsNormal = mat3(transpose(inverse(worldMat))) * aNormal;
+	gl_Position = projMat * modelViewMat * vec4(aPosition, 1.0);
 
-	// https://learnopengl.com/PBR/Lighting ------------------------------------
-	vec3 T = normalize(vec3(worldMat * vec4(aTangent, 0.0)));
-	vec3 N = normalize(vec3(worldMat * vec4(aNormal, 0.0)));
-	// re-orthogonalize T with respect to N
-	T = normalize(T - dot(T, N) * N);
-	// then retrieve perpendicular vector B with the cross product of T and N
-	vec3 B = cross(N, T);
-	vertTBN = mat3(T, B, N);
-	// https://learnopengl.com/PBR/Lighting ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-
-	uv = aUV.xy;
+	OUT.uv = aUV.xy;
 
 	uint teamIndex = (instData.z & 0x000000FFu); // leftmost ubyte is teamIndex
-	currentTeamColor = teamColor[teamIndex].rgb;
+	OUT.currentTeamColor = teamColor[teamIndex].rgb;
 
-	camEye = iCamEye.xyz;
-	camTarget = iCamTarget.xyz;
+	OUT.camEye = iCamEye.xyz;
+	OUT.camTarget = iCamTarget.xyz;
 
-	modelVertPos = aPos;
-	worldVertPos = worldPos.xyz;
+	OUT.modelPosition  = vec4(aPosition, 1.0);
+	OUT.modelNormal    = aNormal;
+	OUT.modelTangent   = aTangent;
+	OUT.modelBitangent = aBitangent;
 
-	worldNormal = mat3(transpose(inverse(worldMat))) * aNormal;
-	// worldTangent = T;
-	// worldBitangent = B;
+	OUT.worldPosition  = modelMat  * vec4(aPosition, 1.0);
+	OUT.worldNormal    = modelMat3 * aNormal;
+	OUT.worldTangent   = modelMat3 * aTangent;
+	OUT.worldBitangent = modelMat3 * aBitangent;
+
+	OUT.viewPosition  = modelViewMat  * vec4(aPosition, 1.0);
+	OUT.viewNormal    = modelViewMat3 * aNormal;
+	OUT.viewTangent   = modelViewMat3 * aTangent;
+	OUT.viewBitangent = modelViewMat3 * aBitangent;
+
+	OUT.modelTBN = mat3(OUT.modelTangent, OUT.modelBitangent, OUT.modelNormal);
+	OUT.worldTBN = mat3(OUT.worldTangent, OUT.worldBitangent, OUT.worldNormal);
+	OUT.viewTBN  = mat3(OUT.viewTangent,  OUT.viewBitangent,  OUT.viewNormal);
+
+	// https://learnopengl.com/PBR/Lighting ------------------------------------
+		vec3 T = normalize(OUT.worldTangent);
+		vec3 N = normalize(OUT.worldNormal);
+		// re-orthogonalize T with respect to N
+		T = normalize(T - dot(T, N) * N);
+		// then retrieve perpendicular vector B with the cross product of T and N
+		vec3 B = cross(N, T);
+		OUT.worldTBN = mat3(T, B, N);
+	// https://learnopengl.com/PBR/Lighting ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 }
 
 
@@ -134,6 +160,7 @@ mat4 LookAtTarget(vec3 eye, vec3 target) {
 
 	return lookAtMatrix;
 }
+
 mat4 perspective(float near, float far, float fovy) {
 	float half_fov = fovy/2.0;
 	float cot = cos(half_fov)/sin(half_fov);
