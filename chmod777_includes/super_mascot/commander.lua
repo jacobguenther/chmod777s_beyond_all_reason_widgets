@@ -97,7 +97,7 @@ function CommanderMascot:new()
 				this.currentCommanderID = unitID
 				this:updateCommanderNormal()
 				local name = UnitDefs[this.currentCommanderDefID].objectname
-				Spring.Echo(name, Spring.GetModelPieceMap)
+				-- Spring.Echo(name, Spring.GetModelPieceMap)
 				-- if Spring.GetModelPieceMap then
 				-- 	local piece_map = Spring.GetModelPieceMap("Units/armcom.s3o")
 				-- 	local formatted = ""
@@ -114,7 +114,7 @@ function CommanderMascot:new()
 		local def = UnitDefs[this.currentCommanderDefID]
 		if def and def.customParams and def.customParams.normaltex then
 			this.commanderNormal = def.customParams.normaltex
-			Spring.Echo(this.commanderNormal)
+			-- Spring.Echo(this.commanderNormal)
 		end
 	end
 
@@ -152,9 +152,9 @@ function CommanderMascot:new()
 			local alpha = 1
 			local isStatic = 0
 
-			local px, py, pz = 0.0, -midY/2+15, 0.0
+			local px, py, pz = 0.0, -35, 0.0
 
-			local camEx, camEy, camEz = 0.0, 40.0, -80.0
+			local camEx, camEy, camEz = 0.0, 35.0, -70.0
 			local camTx, camTy, camTz = 0.0, 0.0, 0.0
 			local near, far, fovy = 0.1, 250, math.rad(120)
 
