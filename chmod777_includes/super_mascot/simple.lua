@@ -42,10 +42,16 @@ function SimpleMascot:new()
 	local images = VFS.DirList(IMAGE_DIR, '*.png')
 	for i=1, #images do
 		local path = images[i]
-		local namePlusExtension = path:match('[^/]+$')
-		if #namePlusExtension == 0 then
-			-- on windows
+		local namePlusExtension = ""
+		if path:find("\\") then
+			-- windows
 			namePlusExtension = path:match('[^\\]+$')
+		elseif path:find("/")
+			-- linux
+			namePlusExtension = path:match('[^/]+$')
+		else
+			-- image dir is base dir. ??
+			namePlusExtension = path
 		end
 		local name = namePlusExtension:match('[^%.]+')
 		local extension = namePlusExtension:match('%.png')
