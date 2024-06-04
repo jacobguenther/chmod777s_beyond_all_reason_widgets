@@ -46,7 +46,7 @@ function SimpleMascot:new()
 		if path:find("\\") then
 			-- windows
 			namePlusExtension = path:match('[^\\]+$')
-		elseif path:find("/")
+		elseif path:find("/") then
 			-- linux
 			namePlusExtension = path:match('[^/]+$')
 		else
