@@ -35,11 +35,11 @@ layout (location = 5) in uvec2 bonesInfo; //boneIDs, boneWeights
 #define pieceIndex (bonesInfo.x & 0x000000FFu)
 
 layout (location = 6) in vec4 iWorldPosRot;  // xyz = pos, w = rotation
-layout (location = 7) in vec4 iCamEye;       // xyz, w = unused
-layout (location = 8) in vec4 iCamTarget;    // xyz, w = unused
-layout (location = 9) in vec4 iPerspParams;  // x = near, y = far, z = fovy, w = aspect(unused)
 layout (location = 10) in uvec4 instData;
 
+uniform vec3 uCamEye;       // xyz, w = unused
+uniform vec3 uCamTarget;    // xyz, w = unused
+uniform vec4 uPerspParams;  // x = near, y = far, z = fovy, w = aspect(unused)
 
 //__ENGINEUNIFORMBUFFERDEFS__
 
@@ -54,24 +54,24 @@ out DataVS {
 	vec3 camEye;
 	vec3 camTarget;
 
-	vec4 modelPosition;
-	vec3 modelNormal;
-	vec3 modelTangent;
-	vec3 modelBitangent;
+	// vec4 modelPosition;
+	// vec3 modelNormal;
+	// vec3 modelTangent;
+	// vec3 modelBitangent;
 
 	vec4 worldPosition;
 	vec3 worldNormal;
-	vec3 worldTangent;
-	vec3 worldBitangent;
+	// vec3 worldTangent;
+	// vec3 worldBitangent;
 
-	vec4 viewPosition;
-	vec3 viewNormal;
-	vec3 viewTangent;
-	vec3 viewBitangent;
+	// vec4 viewPosition;
+	// vec3 viewNormal;
+	// vec3 viewTangent;
+	// vec3 viewBitangent;
 
-	mat3 modelTBN;
+	// mat3 modelTBN;
 	mat3 worldTBN;
-	mat3 viewTBN;
+	// mat3 viewTBN;
 } OUT;
 
 
@@ -95,12 +95,12 @@ void main() {
 		* modelRotationMatrix
 		* baseMatrix
 		* pieceMatrix;
-	mat4 viewMat = LookAtTarget(iCamEye.xyz, iCamTarget.xyz);
+	mat4 viewMat = LookAtTarget(uCamEye, uCamTarget);
 	mat4 projMat = perspective(iPerspParams.x, iPerspParams.y, iPerspParams.z);
 
 	mat3 modelMat3 = mat3(modelMat);
 	mat4 modelViewMat = viewMat * modelMat;
-	mat3 modelViewMat3 = mat3(modelViewMat);
+	// mat3 modelViewMat3 = mat3(modelViewMat);
 
 	gl_Position = projMat * modelViewMat * vec4(aPosition, 1.0);
 
@@ -109,36 +109,36 @@ void main() {
 	uint teamIndex = (instData.z & 0x000000FFu); // leftmost ubyte is teamIndex
 	OUT.currentTeamColor = teamColor[teamIndex].rgb;
 
-	OUT.camEye = iCamEye.xyz;
-	OUT.camTarget = iCamTarget.xyz;
+	OUT.camEye = uCamEye;
+	OUT.camTarget = uCamTarget;
 
-	OUT.modelPosition  = vec4(aPosition, 1.0);
-	OUT.modelNormal    = aNormal;
-	OUT.modelTangent   = aTangent;
-	OUT.modelBitangent = aBitangent;
+	// OUT.modelPosition  = vec4(aPosition, 1.0);
+	// OUT.modelNormal    = aNormal;
+	// OUT.modelTangent   = aTangent;
+	// OUT.modelBitangent = aBitangent;
 
 	OUT.worldPosition  = modelMat  * vec4(aPosition, 1.0);
 	OUT.worldNormal    = modelMat3 * aNormal;
-	OUT.worldTangent   = modelMat3 * aTangent;
-	OUT.worldBitangent = modelMat3 * aBitangent;
+	// OUT.worldTangent   = modelMat3 * aTangent;
+	// OUT.worldBitangent = modelMat3 * aBitangent;
 
-	OUT.viewPosition  = modelViewMat  * vec4(aPosition, 1.0);
-	OUT.viewNormal    = modelViewMat3 * aNormal;
-	OUT.viewTangent   = modelViewMat3 * aTangent;
-	OUT.viewBitangent = modelViewMat3 * aBitangent;
+	// OUT.viewPosition  = modelViewMat  * vec4(aPosition, 1.0);
+	// OUT.viewNormal    = modelViewMat3 * aNormal;
+	// OUT.viewTangent   = modelViewMat3 * aTangent;
+	// OUT.viewBitangent = modelViewMat3 * aBitangent;
 
-	OUT.modelTBN = mat3(OUT.modelTangent, OUT.modelBitangent, OUT.modelNormal);
-	OUT.worldTBN = mat3(OUT.worldTangent, OUT.worldBitangent, OUT.worldNormal);
-	OUT.viewTBN  = mat3(OUT.viewTangent,  OUT.viewBitangent,  OUT.viewNormal);
+	// OUT.modelTBN = mat3(OUT.modelTangent, OUT.modelBitangent, OUT.modelNormal);
+	// OUT.worldTBN = mat3(OUT.worldTangent, OUT.worldBitangent, OUT.worldNormal);
+	// OUT.viewTBN  = mat3(OUT.viewTangent,  OUT.viewBitangent,  OUT.viewNormal);
 
 	// https://learnopengl.com/PBR/Lighting ------------------------------------
-		vec3 T = normalize(OUT.worldTangent);
-		vec3 N = normalize(OUT.worldNormal);
-		// re-orthogonalize T with respect to N
-		T = normalize(T - dot(T, N) * N);
-		// then retrieve perpendicular vector B with the cross product of T and N
-		vec3 B = cross(N, T);
-		OUT.worldTBN = mat3(T, B, N);
+		// vec3 T = normalize(OUT.worldTangent);
+		// vec3 N = normalize(OUT.worldNormal);
+		// // re-orthogonalize T with respect to N
+		// T = normalize(T - dot(T, N) * N);
+		// // then retrieve perpendicular vector B with the cross product of T and N
+		// vec3 B = cross(N, T);
+		// OUT.worldTBN = mat3(T, B, N);
 	// https://learnopengl.com/PBR/Lighting ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 }
 
