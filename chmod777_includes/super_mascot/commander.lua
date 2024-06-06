@@ -75,9 +75,9 @@ function CommanderMascot:new()
 	end
 
 	local shader = unitShader.shaderObj
-	local cameraEyeLocation = glGetUniformLocation(shader, "iCamEye")
-	local cameraTargetLocation = glGetUniformLocation(shader, "iCamTarget")
-	local perspectiveLocation = glGetUniformLocation(shader, "iPerspParams")
+	local cameraEyeLocation = glGetUniformLocation(shader, "uCamEye")
+	local cameraTargetLocation = glGetUniformLocation(shader, "uCamTarget")
+	local perspectiveLocation = glGetUniformLocation(shader, "uPerspParams")
 
 	local isCommander = {}
 	for unitDefID,def in ipairs(UnitDefs) do

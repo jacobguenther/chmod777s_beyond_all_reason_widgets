@@ -96,7 +96,7 @@ void main() {
 		* baseMatrix
 		* pieceMatrix;
 	mat4 viewMat = LookAtTarget(uCamEye, uCamTarget);
-	mat4 projMat = perspective(iPerspParams.x, iPerspParams.y, iPerspParams.z);
+	mat4 projMat = perspective(uPerspParams.x, uPerspParams.y, uPerspParams.z);
 
 	mat3 modelMat3 = mat3(modelMat);
 	mat4 modelViewMat = viewMat * modelMat;

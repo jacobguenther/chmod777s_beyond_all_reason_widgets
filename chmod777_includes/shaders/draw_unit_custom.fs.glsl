@@ -121,7 +121,7 @@ in DataVS {
 	// vec3 viewBitangent;
 
 	// mat3 modelTBN;
-	// mat3 worldTBN;
+	mat3 worldTBN;
 	// mat3 viewTBN;
 } IN;
 
