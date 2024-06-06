@@ -69,17 +69,18 @@ function DrawUnitCustomGL4:new()
 			updateID = this.uniqueID
 		end
 	
+		local VBOTables = this.VBOTables
 		local DrawUnitVBOTable
-		if this.VBOTables[layout] then
-			if this.VBOTables[layout][unitDefID] then
-				DrawUnitVBOTable = this.VBOTables[layout][unitDefID]
+		if VBOTables[layout] then
+			if VBOTables[layout][unitDefID] then
+				DrawUnitVBOTable = VBOTables[layout][unitDefID]
 			else
 				DrawUnitVBOTable = this:CreateVBOTable(layout, unitDefID)
-				this.VBOTables[layout][unitDefID] = DrawUnitVBOTable
+				VBOTables[layout][unitDefID] = DrawUnitVBOTable
 			end
 		else
 			DrawUnitVBOTable = this:CreateVBOTable(layout, unitDefID)
-			this.VBOTables[layout] = {[unitDefID] = DrawUnitVBOTable}
+			VBOTables[layout] = {[unitDefID] = DrawUnitVBOTable}
 		end
 		if DrawUnitVBOTable == nil then
 			spEcho('Layout must contain valid instData attribute')
@@ -98,8 +99,9 @@ function DrawUnitCustomGL4:new()
 	end
 
 	function this:GetUnitCustomVAO(unitDefID, layout)
-		if this.VBOTables[layout] and this.VBOTables[layout][unitDefID] then
-			return this.VBOTables[layout][unitDefID]
+		local VBOTables = this.VBOTables
+		if VBOTables[layout] and VBOTables[layout][unitDefID] then
+			return VBOTables[layout][unitDefID]
 		end
 	end
 	
