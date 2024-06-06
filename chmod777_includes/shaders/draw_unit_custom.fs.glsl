@@ -26,11 +26,6 @@ with this program. If not, see <https://www.gnu.org/licenses/>.
 // Recoil Files
 //     modelmaterials_gl4/templates/defaultMaterialTemplate.lua
 
-
-precision highp float;
-precision highp int;
-precision highp sampler2D;
-
 layout(location = 0) out vec4 color;
 
 // gl.UnitShapeTextures
