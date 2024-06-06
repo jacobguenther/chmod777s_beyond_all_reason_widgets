@@ -194,6 +194,11 @@ function widget:GetConfigData()
 	}
 end
 
+function widget:DrawGenesis()
+	if currentOption and mascots[currentOption] and mascots[currentOption].on_DrawGenesis then
+		mascots[currentOption]:on_DrawGenesis()
+	end
+end
 function widget:Update(dt)
 	-- For when other advPlayerList menues are enabled/disabled or resized
 	updatePositionTimer = updatePositionTimer + dt
@@ -231,7 +236,7 @@ end
 
 function widget:DrawScreen()
 	local currentMascot = mascots[currentOption]
-	if type(currentMascot) == "table" then
+	if currentMascot then
 		glViewport(0, 0, imgSizeX, imgSizeY)
 		fbo:bind()
 			glDepthTest(true)
