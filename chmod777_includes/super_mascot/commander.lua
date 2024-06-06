@@ -22,13 +22,25 @@ with this program. If not, see <https://www.gnu.org/licenses/>.
 -- cloak animation
 -- nano particles
 
+local glGetUniformLocation = gl.GetUniformLocation
+local glUniform = gl.Uniform
 local glCulling = gl.Culling
 local glDepthTest = gl.DepthTest
 local glDepthMask = gl.DepthMask
 local glTexture = gl.Texture
 local glUnitShapeTextures = gl.UnitShapeTextures
+
 local GL_BACK = GL.BACK
+local GL_UNSIGNED_INT = GL.UNSIGNED_INT
+
 local spEcho = Spring.Echo
+local spGetMyPlayerID = Spring.GetMyPlayerID
+local spGetMyTeamID = Spring.GetMyTeamID
+local spGetMyAllyTeamID = Spring.GetMyAllyTeamID
+local spGetTeamUnits = Spring.GetTeamUnits
+local spGetUnitDefID = Spring.GetUnitDefID
+local spGetUnitRotation = Spring.GetUnitRotation
+local spSetUnitAlwaysUpdateMatrix = Spring.SetUnitAlwaysUpdateMatrix
 
 local luaWidgetDir = 'LuaUI/Widgets/'
 local luaIncludeDir = luaWidgetDir..'Include/'
@@ -36,10 +48,10 @@ local LuaShader = VFS.Include(luaIncludeDir..'LuaShader.lua')
 
 local layout = {
 	{id = 6, name = 'worldposrot', size = 4},
-	{id = 7, name = 'camEye', size = 4},
-	{id = 8, name = 'camTarget', size = 4},
-	{id = 9, name = 'perspParams', size = 4},
-	{id = 10, name = 'instData', type = GL.UNSIGNED_INT, size = 4}
+	-- {id = 7, name = 'camEye', size = 4},
+	-- {id = 8, name = 'camTarget', size = 4},
+	-- {id = 9, name = 'perspParams', size = 4},
+	{id = 10, name = 'instData', type = GL_UNSIGNED_INT, size = 4}
 }
 
 local CommanderMascot = {}
@@ -58,9 +70,14 @@ function CommanderMascot:new()
 	}, 'DrawUnitCustomGL4 Shader')
 	local unitshaderCompiled = unitShader:Initialize()
 	if unitshaderCompiled ~= true then
-		spEcho('DrawUnitCustomGL4 shader compilation failed', unitshaderCompiled)
+		spEcho('DrawUnitCustomGL4 shader compilation failed')
 		return nil
 	end
+
+	local shader = unitShader.shaderObj
+	local cameraEyeLocation = glGetUniformLocation(shader, "iCamEye")
+	local cameraTargetLocation = glGetUniformLocation(shader, "iCamTarget")
+	local perspectiveLocation = glGetUniformLocation(shader, "iPerspParams")
 
 	local isCommander = {}
 	for unitDefID,def in ipairs(UnitDefs) do
@@ -70,6 +87,7 @@ function CommanderMascot:new()
 	end
 
 	local this = {
+		gameStarted = false,
 		drawUnitCustomGL4 = drawUnitCustomGL4,
 		renderID = nil,
 		unitShader = unitShader,
@@ -80,39 +98,49 @@ function CommanderMascot:new()
 		currentCommanderDefID = nil,
 		currentCommanderID = nil,
 		commanderNormal = nil,
+		camEx = 0.0, camEy = 35.0, camEz = -70,
+		camTx = 0.0, camTy = 0.0, camTz = 0.0,
+		near = 0.1, far = 250.0, fovy = math.rad(120), aspect = 1.0,
+		cameraEyeLocation = cameraEyeLocation,
+		cameraTargetLocation = cameraTargetLocation,
+		perspectiveLocation = perspectiveLocation,
 	}
 
 	function this:updatePlayer()
-		this.currentPlayerID = Spring.GetMyPlayerID()
-		this.currentTeamID = Spring.GetMyTeamID()
-		this.currentAllyTeamID = Spring.GetMyAllyTeamID()
+		this.currentPlayerID = spGetMyPlayerID()
+		this.currentTeamID = spGetMyTeamID()
+		this.currentAllyTeamID = spGetMyAllyTeamID()
 	end
 	function this:updateCommander()
 		if this.currentCommanderID then
-			Spring.SetUnitAlwaysUpdateMatrix(this.currentCommanderID, false)
+			spSetUnitAlwaysUpdateMatrix(this.currentCommanderID, false)
 		end
 
-		local units = Spring.GetTeamUnits(this.currentTeamID)
+		this.currentCommanderDefID = nil
+		this.currentCommanderID = nil
+		this.commanderNormal = nil
+
+		local units = spGetTeamUnits(this.currentTeamID)
 		for i=1,#units do
 			local unitID = units[i]
-			local unitDefID = Spring.GetUnitDefID(unitID)
+			local unitDefID = spGetUnitDefID(unitID)
 			if isCommander[unitDefID] then
 				this.currentCommanderDefID = unitDefID
 				this.currentCommanderID = unitID
 
 				this:updateCommanderNormal()
 
-				Spring.SetUnitAlwaysUpdateMatrix(this.currentCommanderID, true)
+				spSetUnitAlwaysUpdateMatrix(this.currentCommanderID, true)
 
 				-- local name = UnitDefs[this.currentCommanderDefID].objectname
-				-- Spring.Echo(name, Spring.GetModelPieceMap)
+				-- spEcho(name, Spring.GetModelPieceMap)
 				-- if Spring.GetModelPieceMap then
 				-- 	local piece_map = Spring.GetModelPieceMap("Units/armcom.s3o")
 				-- 	local formatted = ""
 				-- 	for name,index in pairs(piece_map) do
 				-- 		formatted = formatted.." "..name.." "..index
 				-- 	end
-				-- 	Spring.Echo(formatted)
+				-- 	spEcho(formatted)
 				-- end
 				break
 			end
@@ -125,6 +153,25 @@ function CommanderMascot:new()
 		end
 	end
 
+	function this:on_DrawGenesis()
+		unitShader:Activate()
+		glUniform(this.cameraEyeLocation,
+			this.camEx,
+			this.camEy,
+			this.camEz)
+		glUniform(this.cameraTargetLocation,
+			this.camTx,
+			this.camTy,
+			this.camTz)
+		glUniform(this.perspectiveLocation,
+			this.near,
+			this.far,
+			this.fovy,
+			1.0)
+		unitShader:Deactivate()
+		widgetHandler:RemoveCallIn("DrawGenesis")
+	end
+
 	function this:Draw()
 		if this.currentCommanderDefID == nil then
 			return
@@ -132,7 +179,7 @@ function CommanderMascot:new()
 		glCulling(GL_BACK)
 		glDepthTest(true)
 		glDepthMask(true)
-		unitShader:Activate()
+		this.unitShader:Activate()
 			glUnitShapeTextures(this.currentCommanderDefID, true)
 			glTexture(3, this.commanderNormal)
 
@@ -140,7 +187,7 @@ function CommanderMascot:new()
 			
 			glTexture(3, false)
 			glUnitShapeTextures(this.currentCommanderDefID, false)
-		unitShader:Deactivate()
+		this.unitShader:Deactivate()
 		glDepthMask(false)
 		glCulling(false)
 	end
@@ -150,32 +197,25 @@ function CommanderMascot:new()
 			return
 		end
 
-		local pitch, yaw, roll = Spring.GetUnitRotation(this.currentCommanderID)
-		if yaw ~= this.prevYaw then
+		local pitch, yaw, roll = spGetUnitRotation(this.currentCommanderID)
+		if yaw ~= nil and yaw ~= this.prevYaw then
 			this.prevYaw = yaw
-			-- local dirX, dirY, dirZ = Spring.GetUnitDirection(myCommanderID)
+			-- local dirX, dirY, dirZ = Spring.GetUnitDirection(this.currentCommanderID)
 			-- local px, py, pz, midX, midY, midZ, aimX, aimY, aimZ = Spring.GetUnitPosition(this.currentCommanderID, true)
-			-- local isCloacked = Spring.GetUnitIsCloaked(myCommanderID);
+			-- local isCloacked = Spring.GetUnitIsCloaked(this.currentCommanderID);
 
 			local px, py, pz = 0.0, -35, 0.0
 
-			local camEx, camEy, camEz = 0.0, 35.0, -70.0
-			local camTx, camTy, camTz = 0.0, 0.0, 0.0
-			local near, far, fovy = 0.1, 250, math.rad(120)
-
 			local instanceData = {
-				px,       py,    pz,-yaw, -- posrot
-				camEx, camEy, camEz,   0, -- camEye
-				camTx, camTy, camTz,   0, -- camTarget
-				near,    far,  fovy,   0, -- perspParams
-				0, 0, 0, 0                -- instData
+				px, py, pz,-yaw, -- posrot
+				0,   0,  0,   0  -- instData
 			}
 			this.renderID = drawUnitCustomGL4:AddUnit(this.currentCommanderID, this.currentCommanderDefID, layout, instanceData, this.renderID)
 		end
 	end
 	function this:on_GameFrame(n)
-		if not gameStarted and n > 0 then
-			gameStarted = true
+		if not this.gameStarted and n > 0 then
+			this.gameStarted = true
 			this:updatePlayer()
 			this:updateCommander()
 		end
@@ -185,19 +225,18 @@ function CommanderMascot:new()
 		local oldCommanderDefID = this.currentCommanderDefID
 		this:updatePlayer()
 		this:updateCommander()
-		if this.currentCommanderID ~= oldCommanderID and renderID ~= nil then
+		if this.currentCommanderID ~= oldCommanderID and this.renderID ~= nil then
 			this.drawUnitCustomGL4:RemoveUnit(layout, oldCommanderDefID, this.renderID)
 			this.renderID = nil
 		end
 	end
 	function this:on_UnitDestroyed(unitID)
 		if unitID == this.currentCommanderID then
-			if renderID ~= nil then
+			if this.renderID ~= nil then
 				drawUnitCustomGL4:RemoveUnit(layout, this.currentCommanderDefID, this.renderID)
-				renderID = nil
+				this.renderID = nil
 			end
-			myCommanderID = nil
-			myCommanderDefID = nil
+			this:updateCommander()
 		end
 	end
 
