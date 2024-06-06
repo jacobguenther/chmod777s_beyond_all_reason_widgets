@@ -105,27 +105,24 @@ in DataVS {
 	vec3 camEye;
 	vec3 camTarget;
 
-	// mat3 vertTBN;
-	// vec3 worldNormal;
-
-	vec4 modelPosition;
-	vec3 modelNormal;
-	vec3 modelTangent;
-	vec3 modelBitangent;
+	// vec4 modelPosition;
+	// vec3 modelNormal;
+	// vec3 modelTangent;
+	// vec3 modelBitangent;
 
 	vec4 worldPosition;
 	vec3 worldNormal;
-	vec3 worldTangent;
-	vec3 worldBitangent;
+	// vec3 worldTangent;
+	// vec3 worldBitangent;
 
-	vec4 viewPosition;
-	vec3 viewNormal;
-	vec3 viewTangent;
-	vec3 viewBitangent;
+	// vec4 viewPosition;
+	// vec3 viewNormal;
+	// vec3 viewTangent;
+	// vec3 viewBitangent;
 
-	mat3 modelTBN;
-	mat3 worldTBN;
-	mat3 viewTBN;
+	// mat3 modelTBN;
+	// mat3 worldTBN;
+	// mat3 viewTBN;
 } IN;
 
 void main() {
@@ -208,7 +205,7 @@ void main() {
 
 	// TODO animate emission
 	// float time = timeInfo.g; // vec4 timeInfo: gameFrame, gameSeconds, drawFrame, frameTimeOffset
-	// emission = clamp(emission*sin(time)+0.25, 0.25, 1.0);
+	// emission = clamp(emission*sin(time), 0.0, 1.0);
 
 	// color.rgb = N;
 }
